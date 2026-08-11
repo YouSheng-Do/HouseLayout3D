@@ -212,4 +212,7 @@ checkpoints 完成 `paper_spec_two_stage` A/B、Windows endpoint metric 與 Stai
 metric，以及 Room-type retained-feature aggregation A/B；它們不回寫成 Phase-0 的一部分。
 Room-type checkpoint 使用 explicit conservative crosswalk，paper last-five pruning 只記
 candidate 而不刪 room，完整說明見 `docs/room_types_ab_v0_1.md`。任何新的
-threshold／heuristic 開發仍先只看 dev。
+threshold／heuristic 開發仍先只看 dev。其後 direct-door checkpoint 亦先在 dev 固定
+semantic wall-snap/fusion contract，再以具名 checkpoint 一次性存取 held-out；all-16
+Doors@0.5 0.243→0.322，且 held-out 後未 retune。詳見
+`docs/direct_doors_ab_v0_1.md`。

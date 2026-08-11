@@ -375,12 +375,12 @@ morphology internals、作者 Stage-4 code 未釋出，本路徑不稱 author-co
 
 ### 8.1 Doors 與 openings
 
-**狀態（2026-08-12）：paper path `FIXED AND TESTED`；best extension `OPEN`。**
+**狀態（2026-08-12）：paper path與 best direct/fused extension 都 `FIXED AND TESTED`。**
 paper bottleneck 已保存 oriented rectangle、width、stage 與 direct room pair；
 缺 canonical room geometry 的 candidate 會明確 drop，不再留下 dangling edge。
 all-16 有 81 doors、57 non-door openings、10 dropped candidates；Doors@0.5
 paper **0.043** vs watershed **0.243**。因此 downstream 暫不採 paper
-bottleneck-only doors，下一步 best variant 仍是 direct semantic fusion。
+bottleneck-only doors。
 
 ### Paper-spec
 
@@ -400,6 +400,13 @@ current adjacency-only 方法即使用 GT regions 也只能覆蓋約 58% GT door
 - confidence 與 source=`bottleneck|semantic|fused`。
 
 Direct semantic detection 是研究擴充，不得寫成 paper method。
+
+本擴充已使用 retained OneFormer door-ray endpoints 建立具名 checkpoint：semantic-only
+all F1 **0.226**，watershed control **0.243**，fused **0.322**；dev 0.251→0.332、
+held-out 0.236→0.311，同方向且 held-out 後未 retune。all TP/FP/FN 由
+50/69/242→82/136/210，paired 11 better／4 worse／1 tie。annotated-best 現採
+`fused_union`，但 precision 只有 0.376，仍標 doors 不可靠；完整 contract、視覺 audit
+與 artifacts 見 `docs/direct_doors_ab_v0_1.md`。
 
 估計：
 
@@ -500,6 +507,12 @@ go/no-go 前，不投入新的 GPU batch，也不啟用 automatic pruning。
 
 ### 8.5 Access graph
 
+**狀態（2026-08-12）：prediction graph coverage `PARTIALLY FIXED`；independent topology
+accuracy `OPEN`。** direct/fused doors 的 valid room/outside associations 已寫入 canonical
+graph，non-door layers 不變；同一 derived protocol 下 edge_all F1 由 **0.125→0.184**。
+因 GT/pred association 都使用 geometry probes，這只能當 diagnostic，不能取代下列
+independent gold subset。
+
 需要：
 
 - door/opening 直接產生的 edges 優先於事後 probes；
@@ -521,7 +534,7 @@ go/no-go 前，不投入新的 GPU batch，也不啟用 automatic pruning。
 ### Checkpoint 3
 
 - `[PARTIALLY FIXED]` schema 中 rooms/doors/windows/stairs/types/edges 都有值或明確
-  `unknown`；room types 仍不可靠，direct/fused doors 與獨立 topology gold 尚未完成。
+  `unknown`；room types 與 doors 仍不可靠，獨立 topology gold 尚未完成。
 - `[PARTIALLY FIXED]` Room+type、Doors、Windows、Stair-footprint 有獨立指標；
   Stair-link 與 topology accuracy 因缺 independent GT 仍為 N/A/exploratory。
 - `[FIXED AND TESTED]` 現有 annotation layers 全部有 source/hash/provenance。
@@ -724,8 +737,9 @@ Stage 3 A/B 應優先觀察：
 5. `[FIXED AND TESTED]` 實作 paper 2D door rule與 `outdoor` window rays。
    兩者都完成 dev／held-out／all checkpoint；paper alignment 均未改善 best
    headline，因此 paper/best branches 繼續分開。
-6. `[DEFERRED / OUT OF SCOPE]` 此區段先不改 Stage 2/3，也不做
-   direct-door extension。
+6. `[COMPLETED IN LATER CHECKPOINT]` 第一區段當時不改 Stage 2/3、也不做
+   direct-door extension；後續 `phase3_direct_doors_ab_v0_1` 已以 retained semantics
+   CPU-only 完成 direct/fused A/B，仍未改 Stage 2/3。
 
 預估 **7–12 個工作天**。完成後依 2D Room/Corner/Door 指標決定：
 

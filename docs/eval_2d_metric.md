@@ -53,6 +53,11 @@ both matched and mappable; see `docs/room_types_ab_v0_1.md`.
 
 **Doors / Windows**: correct if L2 distance to the GT element is below a threshold.
 
+The active Doors metric uses strict level alignment and Hungarian matching on segment
+**midpoints** at 0.2/0.5 m. It does not validate segment width or orientation. The direct-door
+checkpoint must therefore report width/orientation as unscored limitations; its all-16
+watershed→fused result is 0.243→0.322 at 0.5 m. See `docs/direct_doors_ab_v0_1.md`.
+
 **Room++** (Floor-SP): a room counts as correct only if — in addition to passing the room
 test — it is **connected to the correct set of rooms as in the ground truth**. This is the
 existing academic precedent for connectivity-aware evaluation; we extend it below.
