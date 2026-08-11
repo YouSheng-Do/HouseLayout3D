@@ -463,7 +463,13 @@ assumptions。D.5 raw rectangle order `01/23` 亦已在 2D exporter 修成 perim
 
 ### 8.4 Room types
 
-目前 Room+type F1 0.15，是 annotated floorplan 的主要 blocker。
+**狀態（2026-08-12）：paper aggregation path `FIXED AND TESTED`；可靠 room-type
+annotation 仍為 `OPEN`。** 已以 retained OpenSeg features 建立 same-base A/B：direct
+sample mean vs Appendix D.4 指定的 mesh vertices k=5 → room mean reproducible
+interpretation。all-16 end-to-end Room+type F1 為 **0.187 vs 0.165**；geometry-matched
+且 GT ontology 可映射的 139 rooms 上 conditional Top-1 為 **0.432 vs 0.381**。
+paper aggregation 沒有改善品質，且 predicted classes 集中在 bedroom/entrance；因此
+annotated-best 暫採 direct-sample control，但仍標 `room_types_reliable=false`。
 
 Paper-spec 應：
 
@@ -480,6 +486,15 @@ Paper-spec 應：
 - 由下游或 confidence threshold 決定是否排除。
 
 評估前需建立 MP3D room labels → paper 15 classes 的明確 ontology crosswalk；無對應類別標為 `other/unknown`，不可為提高分數任意合併。
+
+本 checkpoint 已凍結 conservative crosswalk：325 GT rooms 中 221（68.0%）可映射，
+104 個無直接對應者保留為 unmappable。paper last-five leaf rule只標 candidate（45/41
+rooms）而不刪 geometry；完整 15 scores、confidence、feature counts 與 provenance 都已
+保存。詳見 `docs/room_types_ab_v0_1.md`。
+
+下一步若要提升 type 品質，應先在 dev 做 prompt/template、room evidence pooling 或
+不同 visual-language features 的 feasibility checkpoint；未通過 held-out-independent
+go/no-go 前，不投入新的 GPU batch，也不啟用 automatic pruning。
 
 估計：**3–6 天**。
 
@@ -505,10 +520,12 @@ Paper-spec 應：
 
 ### Checkpoint 3
 
-- schema 中 rooms/doors/windows/stairs/types/edges 全部有值或明確 `unknown`。
-- Room+type、Doors、Windows 與 topology 有獨立指標。
-- annotations 全部可追溯來源。
-- 下游研究不需要 3D extrusion 即可消費產物。
+- `[PARTIALLY FIXED]` schema 中 rooms/doors/windows/stairs/types/edges 都有值或明確
+  `unknown`；room types 仍不可靠，direct/fused doors 與獨立 topology gold 尚未完成。
+- `[PARTIALLY FIXED]` Room+type、Doors、Windows、Stair-footprint 有獨立指標；
+  Stair-link 與 topology accuracy 因缺 independent GT 仍為 N/A/exploratory。
+- `[FIXED AND TESTED]` 現有 annotation layers 全部有 source/hash/provenance。
+- `[FIXED AND TESTED]` canonical v0.2 可不經 3D extrusion供下游消費。
 
 ---
 

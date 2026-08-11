@@ -209,4 +209,7 @@ TP/FP/FN 5/7/29）；12/12 prediction links references 完整，但不報 accura
 
 以上是 Phase-0 governance checkpoint 的範圍，不代表後續仍未完成。其後已用獨立具名
 checkpoints 完成 `paper_spec_two_stage` A/B、Windows endpoint metric 與 Stair-footprint
-metric；它們不回寫成 Phase-0 的一部分。任何新的 threshold／heuristic 開發仍先只看 dev。
+metric，以及 Room-type retained-feature aggregation A/B；它們不回寫成 Phase-0 的一部分。
+Room-type checkpoint 使用 explicit conservative crosswalk，paper last-five pruning 只記
+candidate 而不刪 room，完整說明見 `docs/room_types_ab_v0_1.md`。任何新的
+threshold／heuristic 開發仍先只看 dev。

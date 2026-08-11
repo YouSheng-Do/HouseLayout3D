@@ -43,6 +43,14 @@ are comparable to published work.
 **Room+type** (RoomFormer's `Room*`): the Room metric with the added constraint that the
 predicted room type matches GT.
 
+Current HouseLayout3D room-type checkpoint additionally freezes an explicit ontology contract:
+the MP3D label must map non-null through
+`configs/eval2d/room_type_crosswalk_v0_1.json`. Report both (a) strict end-to-end Room+type
+precision/recall/F1 over all rooms and (b) Top-1/Top-3 accuracy conditioned on a valid geometry
+match and a mappable GT type. The latter is a classifier diagnostic and must not replace the
+end-to-end score. As of `phase3_room_types_ab_v0_1`, 221/325 GT rooms are mappable and 139 are
+both matched and mappable; see `docs/room_types_ab_v0_1.md`.
+
 **Doors / Windows**: correct if L2 distance to the GT element is below a threshold.
 
 **Room++** (Floor-SP): a room counts as correct only if — in addition to passing the room
