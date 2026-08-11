@@ -178,7 +178,7 @@ CAD annotations. Use as cross-check, not primary door GT.
 This is the **primary door geometry GT** and the only source of opening direction — MP3D has
 none. Also `windows/`, `stairs/`, `structures/`.
 
-### 1d. Frozen Window / inter-level Stair contract（schema fixed; metric pending）
+### 1d. Frozen Window / inter-level Stair contract（schema fixed; implementation status below）
 
 `annotated_floorplan_v0.2` fixes the storage contract before either metric is enabled:
 
@@ -200,8 +200,20 @@ When implemented, use these protocols:
   aligned levels, retaining holes and MultiPolygons.
 - **Stair-link**: a footprint match is correct only when the `(from_level,to_level)` relation
   also matches. Unknown `to_level` is reported as missing link coverage, not guessed from z.
+  The released 34 stair meshes contain no explicit level or adjacent-room relation and often
+  split one physical staircase into flights/landings. Therefore current released-only
+  evaluation reports Stair-link as **N/A**; it must not infer GT `to_level` from mesh z. The
+  prediction artifact may still preserve direct D.5 links and report their coverage.
+- For Stair-footprint only, each released mesh entity is assigned an owning floor by the
+  reproducible projection rule: highest official floor elevation `<= min(mesh_z)+0.15m`.
+  This owning-floor association does not create a GT inter-level link.
 - The existing **3D stairs F1 0.411** uses a different 3D d_E/d_H protocol and is not a 2D
   stair-footprint or stair-link score.
+
+Implementation checkpoints (2026-08-12): Windows endpoint evaluator v0.2 and strict
+released-entity Stair-footprint evaluator v0.1 are active. Current annotated-best Stair result is
+P/R/F1 0.417/0.147/0.217 over 12 predictions and all 34 released entities; Stair-link remains
+N/A. See `docs/window_rays_ab_v0_1.md` and `docs/stairs2d_v0_1.md`.
 
 ### Deliverable
 

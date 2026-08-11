@@ -192,13 +192,13 @@ Stage 2 sampling 曾觀察到約 ±6 Δ5 等級的 run variance。所有 upstrea
 
 ### 工作項目
 
-1. 更新仍顯示 stairs 0.473「達標」的 HTML/report；歷史 log 保留但加 correction banner。
-2. 將 `paper_alignment_audit.md` 中 stairs 項維持 `FIXED AND TESTED`，並連到 compare regression。
-3. 將 2D room matching 改為 deterministic one-to-one Hungarian IoU matching。
-4. 為 polygon holes、multipolygons、空 predictions、跨 level matching 建 regression fixtures。
-5. 人工檢查約 30 個 derived connectivity cases，分 interior/exterior/厚牆 miss 記錄。
-6. 重新定義 Tier C 信心：在 GT derivation 改善前，以 exploratory/lower-confidence 報告，不宣稱 annotated truth。
-7. 補 windows 與 inter-level stair evaluation spec；可先不實作完整 metric，但 schema 先固定。
+1. [x] 更新仍顯示 stairs 0.473「達標」的 HTML/report；歷史 log 保留但加 correction banner。
+2. [x] 將 `paper_alignment_audit.md` 中 stairs 項維持 `FIXED AND TESTED`，並連到 compare regression。
+3. [x] 將 2D room matching 改為 deterministic one-to-one Hungarian IoU matching。
+4. [x] 為 polygon holes、multipolygons、空 predictions、跨 level matching 建 regression fixtures。
+5. [x] 人工檢查約 30 個 derived connectivity cases，分 interior/exterior/厚牆 miss 記錄。
+6. [x] 重新定義 Tier C 信心：在 GT derivation 改善前，以 exploratory/lower-confidence 報告，不宣稱 annotated truth。
+7. [x] 補 windows 與 inter-level stair evaluation spec 並固定 schema；後續具名 checkpoints 已實作 Windows 與 Stair-footprint metric。
 
 ### 產物
 
@@ -431,6 +431,19 @@ paper branch 保留 outdoor；annotated-best 暫留 three-class control。詳見
 
 ### 8.3 Stairs 與 multi-level topology
 
+**狀態（2026-08-12）：2D footprint＋prediction link export `FIXED AND TESTED`。**
+existing D.5 outputs 已轉成 canonical：12 predictions、12/12 direct level/room links
+references valid。all-16 strict released-entity Stair-footprint 為 P/R/F1
+**0.417/0.147/0.217**（5/7/29 TP/FP/FN；34 GT entities）；dev 0.300、held-out
+0.154。低 recall 同時包含 5 個 GT-positive scenes 無 prediction，以及 D.5 merged
+staircase vs released flight/landing fragments 的 representation mismatch。詳見
+`docs/stairs2d_v0_1.md`。
+
+正式 Stair-link accuracy 目前為 **N/A**：released stair meshes 沒有
+`from_level/to_level` 或 adjacent-room truth，不得從 z 猜 GT link。若 multi-level
+topology 是研究核心，下一步需人工建立 physical-stair grouping＋link gold subset；目前只
+能宣稱 prediction link coverage 12/12，不能宣稱正確率。
+
 annotated 2D 只需：
 
 - stair connected components；
@@ -442,7 +455,9 @@ annotated 2D 只需：
 
 可跳過 room volume subtraction、3D stair extrusion、corner-height geometry 與 steps。
 
-current nearby-component merge、minimum area/rise 等未公開設定必須標記為 best-variant assumptions。
+current nearby-component merge、minimum area/rise 等未公開設定已標記為 best-variant
+assumptions。D.5 raw rectangle order `01/23` 亦已在 2D exporter 修成 perimeter
+`0-1-3-2`；不影響舊 3D metric。
 
 估計：**1–3 天**。
 

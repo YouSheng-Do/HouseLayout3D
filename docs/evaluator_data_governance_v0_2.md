@@ -166,13 +166,24 @@ claim。若後續研究以 navigation graph 為核心，需另建 independent go
 
 ## 6. Windows／stairs 的資料契約
 
-v0.2 schema 已固定 `windows[]` 與 `stairs[]`，且 current artifacts 明確標
-`windows_included=false`、`stairs_included=false`。所以目前兩者是 **N/A**，不是空預測的
-零分。
+v0.2 schema 已固定 `windows[]` 與 `stairs[]`。Phase-0 base artifacts 明確標
+`windows_included=false`、`stairs_included=false`，其中空 list 是 **N/A**，不是零分。
+後續具名 checkpoint 則各自把 capability 設為 true：window rays v0.1 保存 637/709
+candidates 並以 endpoint evaluator 評分；stairs2d v0.1 保存 12 個 existing D.5
+predictions。capability=true 後的空 list 才是實際空預測，必須計 FN。
 
 未來 protocol 已固定在 `docs/eval_2d_metric.md`：Windows 使用 metre-space segment endpoint
 distance＋Hungarian；Stair 分 footprint IoU 與 inter-level link correctness。既有 3D stairs
 F1 0.411 不可當作 2D stairs 分數。
+
+Released stair GT 的 34 個 mesh 沒有 `from_level/to_level` 或 adjacent-room 欄位，且同一
+物理樓梯常拆成多個 flight/landing entity。因此 released-only checkpoint 可正式量測
+footprint，link correctness 必須是 N/A；prediction-side direct link 只能報 coverage，不能用
+mesh z 推導一份假 GT link。
+
+正式 stairs2d v0.1：all-16 footprint P/R/F1 0.417/0.147/0.217（12 pred、34 GT、
+TP/FP/FN 5/7/29）；12/12 prediction links references 完整，但不報 accuracy。完整紀錄見
+`docs/stairs2d_v0_1.md`。
 
 ## 7. Definition of Done
 
@@ -184,17 +195,18 @@ F1 0.411 不可當作 2D stairs 分數。
 - [x] holes／MultiPolygons／nested-island／PIP-hole regression；
 - [x] v0.1 backward compatibility 與 16-scene coordinate/count/score round-trip；
 - [x] 30-case connectivity review、manual labels、contact sheets 與 hashes；
-- [x] Tier C claim boundary、Windows/Stair schema 與 pending metric contract 寫入文件；
+- [x] Tier C claim boundary、Windows/Stair schema 與 metric contract 寫入文件；
 - [x] no Stage 2/3/4 rerun、no GPU。
 
-## 8. 本輪不包含
+## 8. Phase-0 本輪不包含（歷史 scope）
 
-- 不改善 `watershed_v3` 的 room geometry；
-- 不做 `paper_spec_two_stage` A/B；
+- 當時不改善 `watershed_v3` 的 room geometry；
+- 當時不做 `paper_spec_two_stage` A/B；
 - 不回復 frozen legacy source 已丟掉的 holes/components；
-- 不實作或計算 2D Windows／Stair metrics；
+- 當時不實作或計算 2D Windows／Stair metrics；
 - 不把 canonical writer 接進一次新的完整 pipeline run；
-- 不調 threshold、不用 held-out debugging。
+- 當時不調 threshold、不用 held-out debugging。
 
-下一個方法 checkpoint可從 `paper_spec_two_stage` vs `watershed_v3` 的相同 frozen inputs
-A/B 開始；任何 threshold／heuristic 開發先只看 dev。
+以上是 Phase-0 governance checkpoint 的範圍，不代表後續仍未完成。其後已用獨立具名
+checkpoints 完成 `paper_spec_two_stage` A/B、Windows endpoint metric 與 Stair-footprint
+metric；它們不回寫成 Phase-0 的一部分。任何新的 threshold／heuristic 開發仍先只看 dev。
