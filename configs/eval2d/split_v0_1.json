@@ -1,0 +1,52 @@
+{
+  "split_version": "eval2d_split_v0.1",
+  "frozen_date": "2026-08-12",
+  "status": "prospective_holdout_only_all_16_scenes_were_previously_observed",
+  "selection_inputs": [
+    "official MP3D .house level count",
+    "official325 Room-metric room count",
+    "scene ID"
+  ],
+  "selection_rule": "Sort by (level_count, room_count, scene_id), pair adjacent scenes, and assign the lexicographically smaller SHA-256(scene_id) to dev. No prediction score or qualitative result is an input.",
+  "policy": {
+    "threshold_and_heuristic_changes": "dev_only",
+    "held_out_execution": "phase_checkpoint_only",
+    "held_out_debugging": "forbidden",
+    "claim": "Not an untouched test set; all scenes had been inspected before this freeze."
+  },
+  "dev": [
+    "1LXtFkjw3qL",
+    "2t7WUuJeko7",
+    "JeFG25nYj2p",
+    "JmbYfDe2QKZ",
+    "YFuZgdQ5vWj",
+    "e9zR4mvMWw7",
+    "p5wJjkQkbXX",
+    "r47D5H71a5s"
+  ],
+  "held_out": [
+    "17DRP5sb8fy",
+    "5LpN3gDmAk7",
+    "HxpKQynjfin",
+    "S9hNv5qa7GM",
+    "TbHJrupSAjP",
+    "WYY7iVyf5p8",
+    "i5noydFURQK",
+    "jtcxE69GiFV"
+  ],
+  "balance": {
+    "dev": {"scenes": 8, "levels": 15, "rooms": 167},
+    "held_out": {"scenes": 8, "levels": 17, "rooms": 158},
+    "total": {"scenes": 16, "levels": 32, "rooms": 325}
+  },
+  "pairs": [
+    {"dev": "2t7WUuJeko7", "held_out": "HxpKQynjfin", "levels_rooms": [[1, 6], [1, 8]]},
+    {"dev": "r47D5H71a5s", "held_out": "17DRP5sb8fy", "levels_rooms": [[1, 19], [1, 10]]},
+    {"dev": "JeFG25nYj2p", "held_out": "i5noydFURQK", "levels_rooms": [[1, 22], [2, 13]]},
+    {"dev": "JmbYfDe2QKZ", "held_out": "S9hNv5qa7GM", "levels_rooms": [[2, 18], [2, 18]]},
+    {"dev": "YFuZgdQ5vWj", "held_out": "5LpN3gDmAk7", "levels_rooms": [[2, 18], [2, 27]]},
+    {"dev": "p5wJjkQkbXX", "held_out": "jtcxE69GiFV", "levels_rooms": [[2, 35], [2, 35]]},
+    {"dev": "e9zR4mvMWw7", "held_out": "TbHJrupSAjP", "levels_rooms": [[3, 22], [3, 26]]},
+    {"dev": "1LXtFkjw3qL", "held_out": "WYY7iVyf5p8", "levels_rooms": [[3, 27], [4, 21]]}
+  ]
+}

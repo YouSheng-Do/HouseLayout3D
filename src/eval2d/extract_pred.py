@@ -13,23 +13,24 @@ import argparse, glob, json, os, pickle, sys
 from collections import defaultdict
 
 import numpy as np
-import cv2
 
 ROOT = "/home/ado/storage/HouseLayout3D"
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, f"{ROOT}/src/stage4")
 from access_derive import derive_access_graph, Room, Door, SUCCESS, ONE_OUTSIDE  # noqa: E402
+from geometry_v2 import (mask_to_json_geometry, primary_exterior,
+                         to_shapely)  # noqa: E402
+
+
+def mask_to_geometry(mask, origin, res, rdp=0.10):
+    """Hierarchy-aware Polygon/MultiPolygon output for canonical v0.2."""
+    return mask_to_json_geometry(mask, origin, res, rdp_m=rdp)
 
 
 def mask_to_poly(mask, origin, res, rdp=0.10):
-    cnts, _ = cv2.findContours(mask.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    if not cnts:
-        return None
-    c = max(cnts, key=cv2.contourArea)
-    c = cv2.approxPolyDP(c, epsilon=rdp / res, closed=True)
-    if len(c) < 3:
-        return None
-    return c.reshape(-1, 2).astype(np.float64) * res + origin + res / 2
+    """Deprecated single-ring compatibility view; topology lives in geometry."""
+    geometry = mask_to_geometry(mask, origin, res, rdp=rdp)
+    return None if geometry is None else primary_exterior(geometry)
 
 
 def extract_scene(scene, derive_d=0.30):
@@ -57,12 +58,16 @@ def extract_scene(scene, derive_d=0.30):
         SG.segment_rooms(lv)
         origin = lv._grid_origin; final = lv._final
         for r in lv.rooms:
-            poly = mask_to_poly(final == r["id"], origin, SG.RES)
-            if poly is None:
+            geometry = mask_to_geometry(final == r["id"], origin, SG.RES)
+            if geometry is None:
                 continue
+            poly = primary_exterior(geometry)
             rooms.append({"idx": r["id"], "level": li, "poly": poly,
+                          "geometry": geometry,
                           "type": types.get((li, r["id"]), "?"),
-                          "area": float((final == r["id"]).sum() * SG.RES * SG.RES),
+                          "area": float(to_shapely(geometry).area),
+                          "source_mask_area": float((final == r["id"]).sum() * SG.RES * SG.RES),
+                          "geometry_provenance": "hierarchy_aware_mask_polygonization_v0.2",
                           "in_roomset": True})
         for op in lv.openings:
             if op.get("is_door"):
@@ -75,7 +80,9 @@ def derive_pred_edges(pred, d=0.30):
     edges = []
     by_lvl = defaultdict(lambda: {"rooms": [], "doors": []})
     for r in pred["rooms"]:
-        by_lvl[r["level"]]["rooms"].append(Room(id=r["idx"], type=r["type"], polygon=r["poly"]))
+        geometry = r["geometry"] if "geometry" in r else r["poly"]
+        by_lvl[r["level"]]["rooms"].append(
+            Room(id=r["idx"], type=r["type"], polygon=geometry))
     for k, dr in enumerate(pred["doors"]):
         by_lvl[dr["level"]]["doors"].append(Door(id=k, p1=dr["seg"][0], p2=dr["seg"][1]))
     for lvl, g in by_lvl.items():
@@ -87,7 +94,8 @@ def derive_pred_edges(pred, d=0.30):
                 edges.append({"rooms": (rec["probe_a"][0], rec["probe_b"][0]), "kind": "room-room", "level": lvl})
             elif rec["outcome"] == ONE_OUTSIDE:
                 hit = (rec["probe_a"] or rec["probe_b"])[0]
-                edges.append({"rooms": (hit, "OUTSIDE"), "kind": "exterior", "level": lvl})
+                edges.append({"rooms": (hit, "OUTSIDE"),
+                              "kind": "room-outside-candidate", "level": lvl})
     return edges
 
 
@@ -107,7 +115,8 @@ def main():
             print(f"{S:>12s} | ERROR {type(e).__name__}: {e}"); continue
         pred["edges"] = derive_pred_edges(pred)
         rr = sum(e["kind"] == "room-room" for e in pred["edges"])
-        ext = sum(e["kind"] == "exterior" for e in pred["edges"])
+        ext = sum(e["kind"] == "room-outside-candidate"
+                  for e in pred["edges"])
         print(f"{S:>12s} | {pred['n_levels']:>3d} {len(pred['rooms']):>5d} {len(pred['doors']):>5d} {f'{rr}/{ext}':>13s}")
         with open(f"{args.out}/{S}.pkl", "wb") as f:
             pickle.dump(pred, f)

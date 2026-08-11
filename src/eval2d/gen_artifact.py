@@ -56,7 +56,7 @@ tierA = [("Room F1", "@IoU>0.5 · 幾何", agg("A","room")["f1"], f"P {agg('A','
 tierB = [("Room+type F1", "房匹配＋房型對", agg("B","room+type")["f1"], "CLIP 房型"),
          ("Doors F1", "@0.5m", agg("B","doors@0.5")["f1"], f"@0.2m {agg('B','doors@0.2')['f1']:.2f}")]
 tierC = [("edge_all F1", "room↔room ＋ room↔外", agg("C","all")["f1"], f"room-room {agg('C','room_room')['f1']:.2f}"),
-         ("edge outside F1", "外門偵測", agg("C","outside")["f1"], "GT-side 僅 79% 可信")]
+         ("edge outside F1", "外門 candidate", agg("C","outside")["f1"], "非獨立 annotated truth")]
 
 def bars(rows):
     h = '<div class="metrics">'
@@ -217,7 +217,7 @@ HxpK 是重要反例：只配到少數 rooms，所以 Room F1 低，但那些少
 
 <section><div class="sec">誠實的方法學邊界<span class="r"></span></div>
 <div class="caveat"><b>GT geometry 已改為官方 floor polygons。</b> Current GT 直接讀 MP3D `.house` 的 <span class="mono">R→S(F)→ordered V</span>，不再經 rasterization／morphology／RDP。<b>房級 IoU {np.mean(alliou):.2f} 仍是「僅成功 matched 房」的 conditional mean（非全房平均）</b>。</div>
-<div class="caveat" style="border-left-color:var(--accent)"><b>Tier C 打折。</b> MP3D 這 16 棟 <span class="mono">#portals=0</span>，連通 GT 是<b>推導的</b>（point-in-polygon 探針，移植自 Structured3D）。該規則在真掃描 GT 上內門準確率 <b>78.9%</b>（合成 S3D 為 98.2%）、外門佔比 25%≈S3D 23%。故 Tier C 是「預測 vs 79% 可信 GT」，讀數要打折。</div>
+<div class="caveat" style="border-left-color:var(--accent)"><b>Tier C 為 exploratory。</b> MP3D 這 16 棟 <span class="mono">#portals=0</span>，連通 GT 是 point-in-polygon 探針推導，不是 annotated graph。30-case geometry audit：10 room↔room candidates 與 distinct regions 一致；10 one-outside 中 9 個在 1.5m 內沒再碰到 room、1 個於 0.40m 碰到 room（thick-gap candidate）；另有 9 same-region、1 overlapping-region ambiguity。所有類別都不是獨立 truth，因此不再宣稱「79% 可信／accuracy」。</div>
 <div class="caveat" style="border-left-color:var(--low)"><b>Evaluator／GT A/B 已完成。</b>
 Legacy v2＋raster GT 的 Room F1 <b>0.613</b>；strict v3 對相同 raster GT 為 <b>0.597</b>；strict v3＋官方 polygons 的共同 324-room subset 為 <b>0.603</b>；current explicit 325-room set 為 <b>0.602</b>。GT overlap 從 <b>{100*gt_audit['current_polygon_overlap_ratio']:.2f}%</b> 降至 <b>{100*gt_audit['house_floor_overlap_ratio']:.2f}%</b>。舊 baseline 未被覆寫。</div>
 <div class="vizcard" style="margin-top:14px"><div class="cap"><b>GT geometry quality audit</b><span class="tag low">preliminary GT caveat</span></div>

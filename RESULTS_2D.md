@@ -21,9 +21,14 @@
 | Angle F1 @0.1m | **0.112** | — |
 | Room+type F1 | **0.144** | CLIP room type 不可靠 |
 | Doors F1 @0.2/0.5m | **0.190 / 0.243** | extra-level doors 已計 FP |
-| edge room-room / outside / all | **0.161 / 0.025 / 0.131** | connectivity 仍是 derived，權重下調 |
+| edge room-room / outside / all | **0.161 / 0.025 / 0.131** | connectivity 是 derived diagnostic；outside 僅為 candidate |
 
 分布：**14/16** scenes Room F1≥0.5；中位約 **0.635**；best `e9zR4mvMWw7` **0.818**；worst `HxpKQynjfin` **0.182**。
+
+Tier C 不再使用舊的「GT-side 79% 可信」說法。2026-08-12 的 deterministic 30-case
+visual audit 驗證了 probe 與 released polygons 的幾何一致性，但沒有 independent portal
+annotation 可計 accuracy；9 個 same-region 與 1 個 overlapping-region sample 顯示 GT
+granularity／overlap 會限制 graph。細節見 `docs/evaluator_data_governance_v0_2.md`。
 
 ## 可識別 A/B
 

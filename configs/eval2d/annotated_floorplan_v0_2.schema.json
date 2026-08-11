@@ -1,0 +1,340 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://houselayout3d.local/schemas/annotated_floorplan_v0_2.schema.json",
+  "title": "HouseLayout3D canonical annotated floorplan v0.2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "scene_id",
+    "artifact_provenance",
+    "method",
+    "coordinate_system",
+    "geometry_contract",
+    "limitations",
+    "levels"
+  ],
+  "properties": {
+    "schema_version": {"const": "annotated_floorplan_v0.2"},
+    "scene_id": {"type": "string", "minLength": 1},
+    "artifact_provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_artifact", "source_sha256", "segmentation_rerun"],
+      "properties": {
+        "source_artifact": {"type": ["string", "null"]},
+        "source_sha256": {
+          "anyOf": [
+            {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+            {"type": "null"}
+          ]
+        },
+        "segmentation_rerun": {"type": "boolean"}
+      }
+    },
+    "method": {
+      "type": "object",
+      "required": ["name", "kind", "source", "baseline_id"],
+      "properties": {
+        "name": {"type": "string"},
+        "kind": {"type": "string"},
+        "source": {"type": "string"},
+        "baseline_id": {"type": "string"}
+      }
+    },
+    "coordinate_system": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["units", "frame", "resolution_m"],
+      "properties": {
+        "units": {"const": "metres"},
+        "frame": {"type": "string"},
+        "resolution_m": {"type": "number", "exclusiveMinimum": 0}
+      }
+    },
+    "geometry_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "representation",
+        "rings_closed",
+        "schema_supports_holes",
+        "schema_supports_multipolygons",
+        "source_topology_fully_observable",
+        "source_capabilities"
+      ],
+      "properties": {
+        "representation": {"const": "GeoJSON-compatible Polygon/MultiPolygon"},
+        "rings_closed": {"const": true},
+        "schema_supports_holes": {"const": true},
+        "schema_supports_multipolygons": {"const": true},
+        "source_topology_fully_observable": {"type": "boolean"},
+        "source_capabilities": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": ["legacy_single_exterior_ring", "structured_polygon_topology"]
+          }
+        }
+      }
+    },
+    "limitations": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "legacy_source_holes_recoverable",
+        "room_types_reliable",
+        "connectivity",
+        "windows_included",
+        "stairs_included",
+        "footprint_included"
+      ],
+      "properties": {
+        "legacy_source_holes_recoverable": {"type": "boolean"},
+        "room_types_reliable": {"type": "boolean"},
+        "connectivity": {"type": "string"},
+        "windows_included": {"type": "boolean"},
+        "stairs_included": {"type": "boolean"},
+        "footprint_included": {"type": "boolean"}
+      }
+    },
+    "levels": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/level"}
+    }
+  },
+  "$defs": {
+    "entity_id": {"type": ["integer", "string"]},
+    "point": {
+      "type": "array",
+      "prefixItems": [{"type": "number"}, {"type": "number"}],
+      "items": false,
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "segment": {
+      "type": "array",
+      "prefixItems": [
+        {"$ref": "#/$defs/point"},
+        {"$ref": "#/$defs/point"}
+      ],
+      "items": false,
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "ring": {
+      "type": "array",
+      "minItems": 4,
+      "items": {"$ref": "#/$defs/point"}
+    },
+    "legacy_metric_ring": {
+      "description": "Exact archived evaluator input; unlike GeoJSON rings it may be unclosed.",
+      "type": "array",
+      "minItems": 3,
+      "items": {"$ref": "#/$defs/point"}
+    },
+    "polygon_coordinates": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/ring"}
+    },
+    "geometry": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "coordinates"],
+          "properties": {
+            "type": {"const": "Polygon"},
+            "coordinates": {"$ref": "#/$defs/polygon_coordinates"}
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "coordinates"],
+          "properties": {
+            "type": {"const": "MultiPolygon"},
+            "coordinates": {
+              "type": "array",
+              "minItems": 1,
+              "items": {"$ref": "#/$defs/polygon_coordinates"}
+            }
+          }
+        }
+      ]
+    },
+    "room": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "geometry",
+        "legacy_metric_ring",
+        "metric_geometry_contract",
+        "type_raw",
+        "type_scores",
+        "type_confidence",
+        "geometry_area_m2",
+        "source_area_m2",
+        "geometry_topology",
+        "source_geometry_capability",
+        "provenance"
+      ],
+      "properties": {
+        "id": {"$ref": "#/$defs/entity_id"},
+        "geometry": {"$ref": "#/$defs/geometry"},
+        "legacy_metric_ring": {
+          "anyOf": [{"$ref": "#/$defs/legacy_metric_ring"}, {"type": "null"}]
+        },
+        "metric_geometry_contract": {"type": "string"},
+        "type_raw": {"type": "string"},
+        "type_scores": {"type": ["object", "array", "null"]},
+        "type_confidence": {"type": ["number", "null"]},
+        "geometry_area_m2": {"type": "number", "minimum": 0},
+        "source_area_m2": {"type": ["number", "null"], "minimum": 0},
+        "geometry_topology": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["components", "holes"],
+          "properties": {
+            "components": {"type": "integer", "minimum": 1},
+            "holes": {"type": "integer", "minimum": 0}
+          }
+        },
+        "source_geometry_capability": {
+          "enum": ["legacy_single_exterior_ring", "structured_polygon_topology"]
+        },
+        "provenance": {"type": "string"}
+      }
+    },
+    "door": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id", "segment", "width_m", "room_a", "room_b", "association_status", "confidence", "provenance"
+      ],
+      "properties": {
+        "id": {"type": "string"},
+        "segment": {"$ref": "#/$defs/segment"},
+        "width_m": {"type": "number", "minimum": 0},
+        "room_a": {
+          "anyOf": [{"$ref": "#/$defs/entity_id"}, {"type": "null"}]
+        },
+        "room_b": {
+          "anyOf": [{"$ref": "#/$defs/entity_id"}, {"type": "null"}]
+        },
+        "association_status": {"type": "string"},
+        "confidence": {"type": ["number", "null"]},
+        "provenance": {"type": "string"}
+      }
+    },
+    "window": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "segment", "wall_id", "room_id", "confidence", "provenance"],
+      "properties": {
+        "id": {"type": "string"},
+        "segment": {"$ref": "#/$defs/segment"},
+        "wall_id": {"anyOf": [{"$ref": "#/$defs/entity_id"}, {"type": "null"}]},
+        "room_id": {"anyOf": [{"$ref": "#/$defs/entity_id"}, {"type": "null"}]},
+        "confidence": {"type": ["number", "null"]},
+        "provenance": {"type": "string"}
+      }
+    },
+    "wall": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "polyline", "adjacent_rooms", "provenance"],
+      "properties": {
+        "id": {"$ref": "#/$defs/entity_id"},
+        "polyline": {
+          "type": "array",
+          "minItems": 2,
+          "items": {"$ref": "#/$defs/point"}
+        },
+        "adjacent_rooms": {
+          "type": "array",
+          "maxItems": 2,
+          "items": {"$ref": "#/$defs/entity_id"}
+        },
+        "provenance": {"type": "string"}
+      }
+    },
+    "stair": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id", "geometry", "from_level", "to_level", "adjacent_rooms", "confidence", "provenance"
+      ],
+      "properties": {
+        "id": {"type": "string"},
+        "geometry": {"$ref": "#/$defs/geometry"},
+        "from_level": {"type": "integer"},
+        "to_level": {"type": ["integer", "null"]},
+        "adjacent_rooms": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/entity_id"}
+        },
+        "confidence": {"type": ["number", "null"]},
+        "provenance": {"type": "string"}
+      }
+    },
+    "graph_node": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "type_raw"],
+      "properties": {
+        "id": {"$ref": "#/$defs/entity_id"},
+        "type_raw": {"type": "string"}
+      }
+    },
+    "graph_edge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["door_id", "rooms", "kind", "status"],
+      "properties": {
+        "door_id": {"type": "string"},
+        "rooms": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {"$ref": "#/$defs/entity_id"}
+        },
+        "kind": {"enum": ["room-room", "room-outside-candidate", "stair"]},
+        "status": {"type": "string"}
+      }
+    },
+    "graph": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["nodes", "edges", "edge_status", "probe_distance_m"],
+      "properties": {
+        "nodes": {"type": "array", "items": {"$ref": "#/$defs/graph_node"}},
+        "edges": {"type": "array", "items": {"$ref": "#/$defs/graph_edge"}},
+        "edge_status": {"type": "string"},
+        "probe_distance_m": {"type": "number", "exclusiveMinimum": 0}
+      }
+    },
+    "level": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id", "elevation", "footprint", "rooms", "walls", "doors", "windows", "stairs", "graph"
+      ],
+      "properties": {
+        "id": {"type": "integer"},
+        "elevation": {"type": "number"},
+        "footprint": {
+          "anyOf": [{"$ref": "#/$defs/geometry"}, {"type": "null"}]
+        },
+        "rooms": {"type": "array", "items": {"$ref": "#/$defs/room"}},
+        "walls": {"type": "array", "items": {"$ref": "#/$defs/wall"}},
+        "doors": {"type": "array", "items": {"$ref": "#/$defs/door"}},
+        "windows": {"type": "array", "items": {"$ref": "#/$defs/window"}},
+        "stairs": {"type": "array", "items": {"$ref": "#/$defs/stair"}},
+        "graph": {"$ref": "#/$defs/graph"}
+      }
+    }
+  }
+}

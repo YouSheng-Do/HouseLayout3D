@@ -4,8 +4,9 @@
   - 房間多邊形＋房型：MP3D region（region_segmentations/regionN.ply ＋ .house R label）
     論文說 rooms 繼承 MP3D per-vertex room ids；我們用 region 為源（354 個），套明講的濾鏡。
   - 門幾何＋開向：HouseLayout3D doors/{scene}.json（唯一有開向；292 門，手標）
-  - 連通：portals 全 0（已證），改用 marching-probe 從「人標 region 多邊形＋人標門」幾何推導，
-    兩側同規則 → 差異全歸幾何品質。
+  - 連通：portals 全 0（已證），改用 fixed-offset PIP probes 從「人標 region 多邊形＋
+    人標門」幾何推導。這是 geometry diagnostic，不是 independent connectivity truth；
+    one_outside 只能稱 room-outside candidate。
 
 房間 set 濾鏡（明講、可複現）：排除 label x(outdoor)、Z(junk)；保留 y/z 並回報佔比。
 Stairs region(s) 保留為節點、標 type=stairs，但不計入 Room 分母（層間連通另由樓梯幾何推）。
@@ -140,8 +141,11 @@ def build_scene(scene):
 
 
 def derive_edges(gt, probe=0.30):
-    """移植 Structured3D 已驗證規則（point-in-polygon 探針，98.2% on GT）。
-    per level：門兩側探針對 room 多邊形做 PIP → success/one_outside(外門)/same_room/…"""
+    """Point-in-polygon probe geometry diagnostic.
+
+    ``one_outside`` is an unverified room-outside candidate, not an annotated
+    exterior door. Structured3D accuracy must not be transferred here.
+    """
     from access_derive import derive_access_graph, Room, Door, SUCCESS, ONE_OUTSIDE, SAME_ROOM, BOTH_OUTSIDE, OVERLAP
     edges = []; outcomes = Counter()
     by_lvl = defaultdict(lambda: {"rooms": [], "doors": []})
@@ -161,7 +165,8 @@ def derive_edges(gt, probe=0.30):
                 edges.append({"rooms": (a, b), "kind": "room-room", "level": lvl})
             elif rec["outcome"] == ONE_OUTSIDE:
                 hit = (rec["probe_a"] or rec["probe_b"])[0]
-                edges.append({"rooms": (hit, "OUTSIDE"), "kind": "exterior", "level": lvl})
+                edges.append({"rooms": (hit, "OUTSIDE"),
+                              "kind": "room-outside-candidate", "level": lvl})
     gt["_outcomes"] = outcomes
     return edges
 
@@ -202,11 +207,11 @@ def main():
                 bbox = (ys.max()-ys.min()+1)*(xs.max()-xs.min()+1)
                 cover.append(filled.sum()/max(bbox, 1))
         covs = f"{100*np.mean(cover):.0f}%" if cover else "—"
-        # 門結果分類（success=室內連兩房；one_outside=外門；其餘=失敗/歧義）
+        # 門結果分類（success=兩個 region；one_outside=OUTSIDE candidate；其餘=未解析）
         oc = gt["_outcomes"]
         succ = oc.get("success", 0); ext = oc.get("one_outside", 0)
-        interior_acc = 100 * succ / max(ndoor - ext, 1)   # 論文式：內門準確率（剔外門）
-        onb = f"{interior_acc:.0f}%"
+        resolved_nonoutside = 100 * succ / max(ndoor - ext, 1)
+        onb = f"{resolved_nonoutside:.0f}%"
         tot_edge += oc
         edstr = f"{succ}/{ext}/{oc.get('same_room',0)+oc.get('both_outside',0)+oc.get('overlap',0)}"
         print(f"{S:>12s} | {nlvl:>3d} {nreg:>3d} {nroom:>7d} {ndoor:>4d} | "
@@ -218,10 +223,12 @@ def main():
     print(f"  (論文: 33 層 · 317 房 · 292 門；region 354)")
     succ = tot_edge.get("success", 0); ext = tot_edge.get("one_outside", 0)
     sr = tot_edge.get("same_room", 0); bo = tot_edge.get("both_outside", 0); ov = tot_edge.get("overlap", 0)
-    print(f"門結果（PIP 規則）: success(內門連兩房) {succ} · one_outside(外門) {ext} · "
+    print(f"門結果（PIP 規則）: success(兩 distinct regions) {succ} · one_outside(candidate) {ext} · "
           f"same_room {sr} · both_outside {bo} · overlap {ov}")
-    print(f"  → 內門準確率（剔外門）= {100*succ/max(succ+sr+bo+ov,1):.1f}%（S3D on-GT 為 98.2%）")
-    print(f"  → 外門佔比 = {100*ext/max(sum(tot_edge.values()),1):.0f}%（S3D ~23%）")
+    print(f"  → raw success / non-one-outside = "
+          f"{100*succ/max(succ+sr+bo+ov,1):.1f}%（不是 independent accuracy）")
+    print(f"  → one_outside candidate 比例 = "
+          f"{100*ext/max(sum(tot_edge.values()),1):.0f}%")
 
 
 if __name__ == "__main__":

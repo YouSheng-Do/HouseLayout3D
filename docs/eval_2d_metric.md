@@ -1,5 +1,11 @@
 # Experiment Spec — 2D Floorplan Evaluation Suite (HouseLayout3D)
 
+> **2026-08-12 governance update**：current evaluator 是
+> `eval2d_v3_strict_levels`，prediction 的正式入口是 frozen canonical
+> `annotated_floorplan_v0.2`。Tier C connectivity 仍是 derived／exploratory；30-case
+> visual audit 只驗證 probe 與同一組 region polygons 的幾何一致性，不能換算成獨立
+> connectivity accuracy。下文舊有的「78.9% accuracy／79% 可信 GT」說法已撤回。
+
 ## Why this exists
 
 Our project targets a **navigation-ready 2D floorplan**, not a 3D layout mesh. But the only
@@ -119,21 +125,23 @@ P name  panorama_index region_index 0  px py pz  0 0 0 0 0                      
   reporting as a finding in its own right, since such connections are necessary for a
   navigation graph.
 
-#### Deriving connectivity, and why it is trustworthy
+#### Deriving connectivity, and its evidence boundary
 
-Derive room-to-room edges geometrically from **human-annotated** region polygons (MP3D) plus
-**human-annotated** door geometry (HouseLayout3D), using the same probe rule applied to
-predictions. This keeps the derivation identical on both sides, so the measured difference
-comes from geometry quality — which is exactly what we want to quantify.
+Derive room-to-room candidates geometrically from **human-annotated** region polygons (MP3D)
+plus **human-annotated** door geometry (HouseLayout3D), using the same probe rule on GT and
+prediction. This is deterministic and useful as a geometry-sensitive diagnostic, but applying
+the same rule on both sides does **not** make the derived graph annotated truth: region gaps,
+overlap, and region granularity can affect both sides.
 
-This is defensible because the rule was independently validated in the Structured3D project:
-on ground-truth geometry it achieved **98.2% interior-door accuracy with ~100% edge precision**,
-robust across a wide probe-distance band.
-
-**Required: re-validate the rule on HouseLayout3D before trusting Tier C.** The Structured3D
-validation was on synthetic data. Sample ~30 derived edges across buildings, inspect them
-visually against the GT geometry, and report the agreement rate and any failure patterns. If
-agreement is poor on real scans, say so — that changes how much weight Tier C can carry.
+The 2026-08-12 HouseLayout3D audit examined a deterministic stratified sample of 30/292 doors.
+All 10 room↔room samples were consistent with two visibly distinct included regions; all 10
+one-outside samples were consistent with the included-room union boundary at 0.30 m. An
+audit-only outward march found no included room within 1.5 m for 9/10, while one reached a room
+at 0.40 m and became a thick-gap candidate; neither class is independently annotated. Nine
+samples put both probes in the same GT
+region and one hit overlapping GT regions. Therefore the audit supports implementation
+consistency, not an accuracy percentage. The Structured3D 98.2% result is external synthetic-
+data evidence only and must not be transferred numerically to HouseLayout3D.
 
 #### Room count reconciliation (open question — resolve before computing Room metrics)
 
@@ -169,6 +177,31 @@ CAD annotations. Use as cross-check, not primary door GT.
 `doors/{scene}.json`: 4 corners + `normal` (opening direction), 292 doors, hand-annotated.
 This is the **primary door geometry GT** and the only source of opening direction — MP3D has
 none. Also `windows/`, `stairs/`, `structures/`.
+
+### 1d. Frozen Window / inter-level Stair contract（schema fixed; metric pending）
+
+`annotated_floorplan_v0.2` fixes the storage contract before either metric is enabled:
+
+- `windows[]`: stable ID, 2D metre-space segment, `wall_id`, `room_id`, confidence, provenance;
+- `stairs[]`: stable ID, Polygon/MultiPolygon footprint, `from_level`, `to_level`, adjacent
+  rooms, confidence, provenance;
+- absent capability is represented by `limitations.windows_included=false` or
+  `limitations.stairs_included=false`. An empty list under this state means **unknown / not
+  produced**, not a zero-scoring prediction. Once the flag is true, an empty list means a real
+  empty prediction and its FN must be counted.
+
+When implemented, use these protocols:
+
+- **Windows@0.2/0.5 m**: project each released 3D window rectangle into a 2D segment, align
+  levels, then perform deterministic one-to-one Hungarian matching. Segment distance is the
+  smaller of the two endpoint orientations' maximum endpoint L2 error. Report P/R/F1 and GT/
+  prediction coverage; do not reuse the current door-midpoint metric silently.
+- **Stair-footprint**: deterministic one-to-one Hungarian matching by footprint IoU>0.5 on
+  aligned levels, retaining holes and MultiPolygons.
+- **Stair-link**: a footprint match is correct only when the `(from_level,to_level)` relation
+  also matches. Unknown `to_level` is reported as missing link coverage, not guessed from z.
+- The existing **3D stairs F1 0.411** uses a different 3D d_E/d_H protocol and is not a 2D
+  stair-footprint or stair-link score.
 
 ### Deliverable
 
@@ -221,24 +254,19 @@ Three tiers. Report all three.
 - Room-type confusion matrix — Stage 4a reported CLIP typing as near-useless (2t7W: 4 of 5
   rooms labelled "bedroom"); quantify that properly rather than leaving it anecdotal
 
-**Tier C — Topology (the tier nobody has evaluated) — REMAINS A PRIMARY TIER**
+**Tier C — Topology — EXPLORATORY / LOWER-CONFIDENCE**
 
-The GT here is derived, not annotated (see Task 1a). **This does not demote Tier C**, for a
-specific reason: the identical derivation rule is applied to both sides, so all measured
-difference is attributable to geometry quality. The GT side derives from *human-annotated*
-region polygons and door geometry; the prediction side derives from *predicted* geometry. That
-is a clean comparison, not two guesses. Report the derived status explicitly and cite the
-Structured3D validation (98.2% / ~100% precision on GT geometry) plus the HouseLayout3D
-re-validation required in Task 1a.
+The GT here is derived, not annotated (see Task 1a), and the 30-case audit exposed same-region
+and overlapping-region ambiguities. Report Tier C as a diagnostic alongside Tier A/B; do not
+use it as a primary benchmark claim, do not call it annotated truth, and do not attach a single
+GT-confidence percentage to it.
 
 - **Access graph edge P / R / F1**: nodes = rooms, edges = doors/openings connecting two rooms
 - **Room++** (Floor-SP): room correct *and* connected to the correct set of rooms
 - Report edges separately for: room↔room, room↔OUTSIDE, and stair edges (inter-level)
-- **Exterior doors must be separated from failures.** A door with only one adjacent room is
-  usually a correct exterior door, not a miss. Use the marching-probe approach: march the
-  empty-side probe outward; if a room appears, it was a thick-wall miss (real failure); if
-  nothing appears within ~1.5 m, it is exterior (correct). Report **interior-door accuracy**
-  as the headline, with the raw rate alongside.
+- **Exterior candidates must be separated from failures.** A door with one probe in no included
+  region is a `room↔OUTSIDE candidate`, not independently verified exterior truth. Report it
+  separately; never fold it into a claimed derivation accuracy without a new manual/gold label.
 
 Note: this reuses methodology developed in the separate Structured3D project
 (`s3daccess/score.py`, `s3daccess/derive.py`). Port the *approach*; the code needs adapting

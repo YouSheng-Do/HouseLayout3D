@@ -19,8 +19,13 @@ It is NOT tuned to maximise success rate.
 from collections import namedtuple
 
 import numpy as np
-from shapely.geometry import Point, Polygon
+from shapely.geometry import Point
 from shapely.prepared import prep
+
+try:
+    from geometry_v2 import to_shapely
+except ImportError:  # package-style import
+    from .geometry_v2 import to_shapely
 
 Room = namedtuple("Room", ["id", "type", "polygon"])   # polygon: (N,2) float array
 Door = namedtuple("Door", ["id", "p1", "p2"])           # p1,p2: (2,) float arrays
@@ -41,12 +46,8 @@ def _prepare_rooms(room_polygons, fix_invalid=True):
     """Build shapely polygons once. Returns list of (room, shapely_poly, prepared)."""
     prepared = []
     for room in room_polygons:
-        poly = Polygon(np.asarray(room.polygon, dtype=float))
+        poly = to_shapely(room.polygon, repair=fix_invalid)
         valid = poly.is_valid
-        if not valid and fix_invalid:
-            # buffer(0) repairs most self-intersections; only needed for
-            # predicted geometry (GT polygons are clean simple polygons).
-            poly = poly.buffer(0)
         prepared.append((room, poly, prep(poly), valid))
     return prepared
 

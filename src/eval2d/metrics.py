@@ -20,25 +20,26 @@ from collections import defaultdict, Counter
 
 import numpy as np
 from scipy.optimize import linear_sum_assignment
-from shapely.geometry import Polygon
-from shapely.validation import make_valid
 
 EVAL2D_VERSION = "eval2d_v3_strict_levels"
 
 ROOT = "/home/ado/storage/HouseLayout3D"
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from access_derive import derive_access_graph, Room, Door, SUCCESS, ONE_OUTSIDE  # noqa: E402
+from geometry_v2 import geometry_rings, to_shapely  # noqa: E402
 
 OUTSIDE = "OUTSIDE"
 
 
 def _poly(p):
-    g = Polygon(np.asarray(p, float))
-    if not g.is_valid:
-        g = g.buffer(0)
-        if g.geom_type == "MultiPolygon":
-            g = max(g.geoms, key=lambda x: x.area)
-    return g
+    """Legacy name retained; v3 now preserves holes and MultiPolygons."""
+    return to_shapely(p)
+
+
+def _room_geometry(room):
+    if "metric_geometry" in room:
+        return room["metric_geometry"]
+    return room["geometry"] if "geometry" in room else room["poly"]
 
 
 def align_levels(gt_z, pred_z, max_dz=1.5):
@@ -61,8 +62,8 @@ def match_rooms_iou(pred_rooms, gt_rooms, thresh=0.5):
     pids = [r["idx"] for r in pred_rooms]; gids = [r["idx"] for r in gt_rooms]
     if not pids or not gids:
         return {}, {}
-    pp = {r["idx"]: _poly(r["poly"]) for r in pred_rooms}
-    gp = {r["idx"]: _poly(r["poly"]) for r in gt_rooms}
+    pp = {r["idx"]: _poly(_room_geometry(r)) for r in pred_rooms}
+    gp = {r["idx"]: _poly(_room_geometry(r)) for r in gt_rooms}
     IoU = np.zeros((len(pids), len(gids)))
     for i, pid in enumerate(pids):
         pg = pp[pid]
@@ -85,17 +86,36 @@ def match_rooms_iou(pred_rooms, gt_rooms, thresh=0.5):
     return mp, iou_of
 
 
+def _corners_and_angles(geometry):
+    points = []
+    angles = []
+    if isinstance(geometry, dict) or hasattr(geometry, "geom_type"):
+        rings = geometry_rings(geometry, include_holes=True)
+    else:
+        # Frozen legacy contract: Corner/Angle used the raw ring even when IoU
+        # repaired its self-intersection with buffer(0).
+        ring = np.asarray(geometry, dtype=float)
+        rings = [ring] if ring.ndim == 2 and ring.shape[1:] == (2,) else []
+    for ring in rings:
+        if len(ring) < 3:
+            continue
+        ring_angles = []
+        for i in range(len(ring)):
+            a = ring[(i-1) % len(ring)] - ring[i]
+            b = ring[(i+1) % len(ring)] - ring[i]
+            ca = np.dot(a, b) / (np.linalg.norm(a)*np.linalg.norm(b) + 1e-9)
+            ring_angles.append(np.degrees(np.arccos(np.clip(ca, -1, 1))))
+        points.extend(ring)
+        angles.extend(ring_angles)
+    return np.asarray(points, dtype=float).reshape(-1, 2), np.asarray(angles)
+
+
 def corner_angle_prf(pred_poly, gt_poly, thr):
     """Corner（點距≤thr 一對一）＋Angle（點對 ＋ 內角差<5°）的 tp/fp/fn。"""
-    P = np.asarray(pred_poly, float); G = np.asarray(gt_poly, float)
-    def interior_angles(poly):
-        n = len(poly); ang = []
-        for i in range(n):
-            a = poly[(i-1) % n] - poly[i]; b = poly[(i+1) % n] - poly[i]
-            ca = np.dot(a, b) / (np.linalg.norm(a)*np.linalg.norm(b) + 1e-9)
-            ang.append(np.degrees(np.arccos(np.clip(ca, -1, 1))))
-        return np.array(ang)
-    pa, ga = interior_angles(P), interior_angles(G)
+    P, pa = _corners_and_angles(pred_poly)
+    G, ga = _corners_and_angles(gt_poly)
+    if not len(P) or not len(G):
+        return ((0, len(P), len(G)), (0, len(P), len(G)))
     D = np.linalg.norm(P[:, None, :] - G[None, :, :], axis=2)
     order = sorted((D[i, j], i, j) for i in range(len(P)) for j in range(len(G)))
     up = set(); ug = set(); tp_c = tp_a = 0
@@ -132,7 +152,8 @@ def match_doors(pred_doors, gt_doors, thr):
 
 def derive_edges(rooms, doors, d=0.30):
     """rooms/doors dict list → room_room set(frozenset ids), room_outside set(ids)。"""
-    R = [Room(id=r["idx"], type=r.get("type", "?"), polygon=r["poly"]) for r in rooms]
+    R = [Room(id=r["idx"], type=r.get("type", "?"),
+              polygon=_room_geometry(r)) for r in rooms]
     Dd = [Door(id=k, p1=np.asarray(dd["seg"])[0], p2=np.asarray(dd["seg"])[1]) for k, dd in enumerate(doors)]
     rr = set(); ro = set()
     if Dd:
@@ -187,7 +208,8 @@ def score_scene(gt, pred, count_unmatched_pred_levels=True):
         # Room+type & corner/angle on matched pairs
         gtypemap = {r["idx"]: r["type"] for r in gr}
         ptypemap = {r["idx"]: r.get("type", "?") for r in pr}
-        gpoly = {r["idx"]: r["poly"] for r in gr}; ppoly = {r["idx"]: r["poly"] for r in pr}
+        gpoly = {r["idx"]: _room_geometry(r) for r in gr}
+        ppoly = {r["idx"]: _room_geometry(r) for r in pr}
         type_tp = 0
         for pid, gid in mp.items():
             ious.append(iou_of[pid][1])

@@ -147,7 +147,7 @@ Current 圖目錄：
 - 我們已完整 reproduce 論文。
 - 0.785 代表所有 rooms 都很準。
 - floorplan 已足夠掛 downstream attributes。
-- stairs 已達到或超過 paper target。
+- stairs 已達到或超過 paper target（目前 3D stairs F1 為 0.411，低於 paper 0.42）。
 - 325 rooms／32 levels 就是論文 317／33 的 exact subset。
 - watershed 是論文或 HOV-SG 方法的逐字移植。
 

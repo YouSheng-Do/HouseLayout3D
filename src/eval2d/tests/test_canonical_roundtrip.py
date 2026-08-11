@@ -3,24 +3,29 @@ import glob, json, os, pickle, sys
 import numpy as np
 D = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, D)
-from canonical_io import build_canonical, load_canonical
+from canonical_io import SCHEMA_VERSION, load_canonical
+from geometry_v2 import to_shapely
 from metrics import score_scene, prf
 
 ROOT = "/home/ado/storage/HouseLayout3D"
 BASE = f"{ROOT}/outputs/eval2d/baselines/watershed_v3_pre_report"
-CANON = f"{ROOT}/outputs/eval2d/canonical/watershed_v3_pre_report"
+CANON = f"{ROOT}/outputs/eval2d/canonical/watershed_v3_pre_report_v0_2"
+LEGACY_CANON = f"{ROOT}/outputs/eval2d/canonical/watershed_v3_pre_report"
 scenes = sorted(os.path.basename(p)[:-4] for p in glob.glob(f"{BASE}/pred/*.pkl"))
 
 def room_f1(res): return prf(*res["A"]["room"])["f1"]
 
 def by_idx(rooms):
-    return {r["idx"]: np.asarray(r["poly"]) for r in rooms}
+    return {r["idx"]: np.asarray(r.get("metric_geometry", r["poly"]))
+            for r in rooms}
 
 fails = []
 for S in scenes:
     pred = pickle.load(open(f"{BASE}/pred/{S}.pkl", "rb"))
     gt = pickle.load(open(f"{BASE}/gt/{S}.pkl", "rb"))
     cdict = json.load(open(f"{CANON}/{S}.json"))
+    if cdict["schema_version"] != SCHEMA_VERSION:
+        fails.append(f"{S} schema {cdict['schema_version']} != {SCHEMA_VERSION}")
     loaded = load_canonical(cdict)
     # room / door / EDGE count 相同（edge 含 room-room + exterior）
     if len(loaded["rooms"]) != len(pred["rooms"]):
@@ -41,6 +46,8 @@ for S in scenes:
         fails.append(f"{S} door coord drift")
     if not all(np.isfinite(np.asarray(r["poly"])).all() for r in loaded["rooms"]):
         fails.append(f"{S} non-finite coord")
+    if not all(to_shapely(r["geometry"]).is_valid for r in loaded["rooms"]):
+        fails.append(f"{S} invalid v0.2 structured geometry")
     # 完整 A/B/C score equivalence（不只 Room F1）
     s_pkl = score_scene(gt, pred); s_can = score_scene(gt, loaded)
     for tier in ("A", "B", "C"):
@@ -60,8 +67,15 @@ f_fwd = agg_room(scenes); f_rev = agg_room(scenes[::-1])
 if abs(f_fwd - f_rev) > 1e-9:
     fails.append(f"aggregate order-dependent {f_fwd} vs {f_rev}")
 
+# Archived v0.1 remains readable after v0.2 promotion.
+legacy_scene = scenes[0]
+legacy = load_canonical(json.load(open(f"{LEGACY_CANON}/{legacy_scene}.json")))
+if len(legacy["rooms"]) != len(pickle.load(open(f"{BASE}/pred/{legacy_scene}.pkl", "rb"))["rooms"]):
+    fails.append("v0.1 backward compatibility room count")
+
 print(f"round-trip + equivalence 檢查 {len(scenes)} 場景")
 if fails:
     print("❌ FAIL:"); [print("  ", f) for f in fails]; sys.exit(1)
-print(f"✅ ALL PASS：16 場景 count/coord round-trip、PKL↔canonical score 等價、aggregate 順序無關")
+print(f"✅ ALL PASS：v0.2 16 場景 count/coord/topology、PKL↔canonical score 等價、"
+      "aggregate 順序無關、v0.1 backward-compatible")
 print(f"   aggregate Room F1（canonical）= {f_fwd:.4f}")

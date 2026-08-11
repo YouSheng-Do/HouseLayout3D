@@ -135,10 +135,13 @@ Stage 2/3 雖然處理 3D 資料，仍是 floorplan 的必要上游；不能因�
 已知待硬化項目：
 
 - connectivity GT 是從人工作圖＋door geometry **推導**，不是 MP3D portal annotation；16 棟 portal count 實為 0。
-- on-GT 內門推導準確率約 78.9%，外門約 25%，Tier C 尚不能視為高可信 ground truth。
-- room matching 需確認／改為 deterministic Hungarian，而不是受排序影響的 greedy matching。
-- GT/pred polygonization 都可能受 raster resolution 與 RDP tolerance 影響。
-- current prediction extractor 會重新呼叫 `identify_levels/segment_rooms`，沒有讀取凍結的 canonical artifact；code 一改，歷史 prediction 可能跟著變。
+- 舊稱「on-GT 內門推導準確率約 78.9%」並非 independent accuracy，已撤回；Tier C
+  是 derived geometry diagnostic，不是 annotated ground truth。
+- room matching 已改為 deterministic Hungarian，並有 adversarial／tie permutation tests。
+- current official GT 不經 raster/RDP；新 prediction geometry contract 已支援 holes／
+  MultiPolygons，但 frozen legacy source 無法回復先前已丟 topology。
+- 正式 evaluator 已只讀 frozen canonical artifact，不再重新呼叫
+  `identify_levels/segment_rooms`；未來新 prediction 的產生端仍需在 pipeline checkpoint 寫出 v0.2。
 - windows、inter-level stairs、完整 Room++ 尚未形成等同 Tier A/B 的可靠評估閉環。
 - room-type ontology 與 MP3D labels 的 crosswalk 尚未充分定義。
 
@@ -199,7 +202,7 @@ Stage 2 sampling 曾觀察到約 ±6 Δ5 等級的 run variance。所有 upstrea
 
 ### 產物
 
-- evaluator version `eval2d_v2`；
+- evaluator version `eval2d_v3_strict_levels`；
 - regression tests；
 - connectivity validation table；
 - 修正過的 current reports。
@@ -215,6 +218,22 @@ Stage 2 sampling 曾觀察到約 ±6 Δ5 等級的 run variance。所有 upstrea
 - room matching 不受輸入順序影響。
 - holes/multipolygons 不被靜默丟棄。
 - Tier C 的限制與人工 agreement rate 明確寫出。
+
+### 2026-08-12 實作狀態
+
+- `[DONE]` evaluator 已升為 `eval2d_v3_strict_levels`：strict unmatched-level FP、
+  deterministic Hungarian、empty/cross-level/invalid geometry regression 均固定。
+- `[DONE]` `geometry_v2` 與 canonical `annotated_floorplan_v0.2` 可保存 Polygon holes 與
+  MultiPolygons；hierarchy-aware mask fixture 為 3 components＋1 hole，round-trip 不丟失。
+- `[DONE]` 正式 JSON Schema 已固定 rooms/walls/doors/windows/stairs/graph 與 capability
+  flags。現有 frozen v0.1 source 只有單一 exterior ring，因此 316 rooms 的舊洞／多元件
+  **不能回復**；這是 source limitation，不假裝已修復歷史 artifact。
+- `[DONE]` evaluator routine 只跑 dev；held-out/all 要具名 checkpoint。正式
+  `phase0_canonical_v0_2` 只讀 16 個 frozen JSON，與 source A/B/C exact 等價。
+- `[DONE]` 30-case Tier C audit 完成。結果是 geometry-consistency evidence，不是
+  independent connectivity accuracy；Tier C 已降為 exploratory/lower-confidence。
+- `[DONE]` windows 與 2D inter-level stair 的 schema／metric contract 已寫入
+  `docs/eval_2d_metric.md`；implementation 與分數仍為 pending/N/A。
 
 ---
 
@@ -301,6 +320,13 @@ building
 
 ### 7.3 D.3 paper-spec two-stage room segmentation
 
+**狀態（2026-08-12）：`FIXED AND TESTED`，但只限明示規格的 reproducible
+interpretation。** 已建立 `paper_spec_two_stage`，固定 2.5 m → 1.5 m、
+`<1.5 m` door rule，並與 `watershed_v3_rerun` 使用相同 Stage-4 inputs、
+相同 predicted levels、相同 polygonizer 做具名 checkpoint A/B。由於論文未給足
+morphology internals、作者 Stage-4 code 未釋出，本路徑不稱 author-code reproduction
+或 literal HOV-SG port。
+
 建立獨立路徑：
 
 1. HOV-SG-style segmentation，bottleneck width 2.5 m；
@@ -334,10 +360,14 @@ building
 
 ### Checkpoint 2
 
-- 有可重跑的 paper-spec 與 watershed A/B。
-- 兩條方法都輸出相同 schema。
-- room geometry 指標與失敗分布完成，不只報平均。
-- 明確決定 downstream 暫用哪一條；選擇品質較好者不改變其 provenance。
+- `[FIXED AND TESTED]` 有可重跑的 paper-spec 與 watershed A/B。
+- `[FIXED AND TESTED]` 兩條方法都輸出 `annotated_floorplan_v0.2`。
+- `[FIXED AND TESTED]` room geometry、room-count error、paired scene 與
+  gain/drop 視覺化已完成。all-16：paper F1 **0.467**、watershed **0.599**；
+  matched-only IoU 皆約 **0.781**，paper 的主要失敗是 over-segmentation。
+- `[INTENTIONAL VARIANT]` downstream 暫用 `watershed_v3`；
+  `paper_spec_two_stage` 保留作 paper-alignment / ablation。詳見
+  `outputs/eval2d/experiments/paper_two_stage_ab_v0_1/all/comparison/RESULTS.md`。
 
 ---
 
@@ -639,12 +669,15 @@ Stage 3 A/B 應優先觀察：
 
 先只做以下內容，不一次展開全部 Phase：
 
-1. 硬化 eval2d matching／polygon fixtures。
-2. 凍結 dev/held-out split。
-3. 建 canonical artifact 與 schema。
-4. 實作 `paper_spec_two_stage`，與 `watershed_v3` 做相同輸入 A/B。
-5. 實作 paper 2D door rule與 `outdoor` window rays。
-6. 先不改 Stage 2/3，也不做 direct-door extension。
+1. `[FIXED AND TESTED]` 硬化 eval2d matching／polygon fixtures。
+2. `[FIXED AND TESTED]` 凍結 dev/held-out split。
+3. `[FIXED AND TESTED]` 建 canonical artifact 與 schema。
+4. `[FIXED AND TESTED]` 實作 `paper_spec_two_stage`，與 `watershed_v3`
+   做相同輸入 A/B；結果支持 downstream 保留 watershed。
+5. `[OPEN]` 實作 paper 2D door rule與 `outdoor` window rays。paper door rule
+   已隨 A/B 產出供診斷，但尚未完成完整 annotation-layer 驗收。
+6. `[DEFERRED / OUT OF SCOPE]` 此區段先不改 Stage 2/3，也不做
+   direct-door extension。
 
 預估 **7–12 個工作天**。完成後依 2D Room/Corner/Door 指標決定：
 

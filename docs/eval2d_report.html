@@ -130,11 +130,11 @@ p{margin:.7rem 0} strong{font-weight:640} .hl{color:var(--accent);font-weight:60
         <span class="pill low">0.131</span></div>
         <div class="track"><div class="grid"><i style="left:25%"></i><i style="left:50%"></i><i style="left:75%"></i></div>
         <div class="fill low" style="--w:13%"></div></div>
-        <div class="mf"><span class="ex">room-room 0.16</span><span class="sc">0 ——— 1.0</span></div></div><div class="metric"><div class="mh"><span class="mn">edge outside F1<span class="u">外門偵測</span></span>
+        <div class="mf"><span class="ex">room-room 0.16</span><span class="sc">0 ——— 1.0</span></div></div><div class="metric"><div class="mh"><span class="mn">edge outside F1<span class="u">外門 candidate</span></span>
         <span class="pill low">0.026</span></div>
         <div class="track"><div class="grid"><i style="left:25%"></i><i style="left:50%"></i><i style="left:75%"></i></div>
         <div class="fill low" style="--w:3%"></div></div>
-        <div class="mf"><span class="ex">GT-side 僅 79% 可信</span><span class="sc">0 ——— 1.0</span></div></div></div>
+        <div class="mf"><span class="ex">非獨立 annotated truth</span><span class="sc">0 ——— 1.0</span></div></div></div>
 </section>
 
 <section><div class="sec">視覺證據 · GT vs 預測 floorplan（含 room IDs/types/doors/derived edges）<span class="r"></span></div>
@@ -168,7 +168,7 @@ HxpK 是重要反例：只配到少數 rooms，所以 Room F1 低，但那些少
 
 <section><div class="sec">誠實的方法學邊界<span class="r"></span></div>
 <div class="caveat"><b>GT geometry 已改為官方 floor polygons。</b> Current GT 直接讀 MP3D `.house` 的 <span class="mono">R→S(F)→ordered V</span>，不再經 rasterization／morphology／RDP。<b>房級 IoU 0.78 仍是「僅成功 matched 房」的 conditional mean（非全房平均）</b>。</div>
-<div class="caveat" style="border-left-color:var(--accent)"><b>Tier C 打折。</b> MP3D 這 16 棟 <span class="mono">#portals=0</span>，連通 GT 是<b>推導的</b>（point-in-polygon 探針，移植自 Structured3D）。該規則在真掃描 GT 上內門準確率 <b>78.9%</b>（合成 S3D 為 98.2%）、外門佔比 25%≈S3D 23%。故 Tier C 是「預測 vs 79% 可信 GT」，讀數要打折。</div>
+<div class="caveat" style="border-left-color:var(--accent)"><b>Tier C 為 exploratory。</b> MP3D 這 16 棟 <span class="mono">#portals=0</span>，連通 GT 是 point-in-polygon 探針推導，不是 annotated graph。30-case geometry audit：10 room↔room candidates 與 distinct regions 一致；10 one-outside 中 9 個在 1.5m 內沒再碰到 room、1 個於 0.40m 碰到 room（thick-gap candidate）；另有 9 same-region、1 overlapping-region ambiguity。所有類別都不是獨立 truth，因此不再宣稱「79% 可信／accuracy」。</div>
 <div class="caveat" style="border-left-color:var(--low)"><b>Evaluator／GT A/B 已完成。</b>
 Legacy v2＋raster GT 的 Room F1 <b>0.613</b>；strict v3 對相同 raster GT 為 <b>0.597</b>；strict v3＋官方 polygons 的共同 324-room subset 為 <b>0.603</b>；current explicit 325-room set 為 <b>0.602</b>。GT overlap 從 <b>1.44%</b> 降至 <b>0.13%</b>。舊 baseline 未被覆寫。</div>
 <div class="vizcard" style="margin-top:14px"><div class="cap"><b>GT geometry quality audit</b><span class="tag low">preliminary GT caveat</span></div>

@@ -168,7 +168,8 @@ def derive_edges(gt, probe=0.30):
             elif record["outcome"] == ONE_OUTSIDE:
                 hit = (record["probe_a"] or record["probe_b"])[0]
                 edges.append({
-                    "rooms": (hit, "OUTSIDE"), "kind": "exterior", "level": level,
+                    "rooms": (hit, "OUTSIDE"),
+                    "kind": "room-outside-candidate", "level": level,
                 })
     return edges, outcomes
 
