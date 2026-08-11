@@ -1,0 +1,338 @@
+<style>
+  :root{
+    --paper:#eef0f3; --card:#fbfbfc; --card-2:#f5f6f8;
+    --ink:#141a20; --ink-2:#4c5661; --ink-3:#828c96;
+    --line:#d9dde2; --line-2:#e6e9ed;
+    --accent:#0f6e7b; --accent-soft:#0f6e7b1a;
+    --met:#3f7a4b; --partial:#a9700f; --gap:#a4392f;
+    --track:#e2e5e9;
+    --shadow:0 1px 2px rgba(20,26,32,.04),0 8px 24px rgba(20,26,32,.05);
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --paper:#0d1216; --card:#141a20; --card-2:#171e25;
+      --ink:#e9edf0; --ink-2:#a7b0b9; --ink-3:#6f7982;
+      --line:#242c34; --line-2:#1d242b;
+      --accent:#39b9c7; --accent-soft:#39b9c722;
+      --met:#71c081; --partial:#d7a648; --gap:#e07a70;
+      --track:#1e262d;
+      --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="light"]{
+    --paper:#eef0f3; --card:#fbfbfc; --card-2:#f5f6f8;
+    --ink:#141a20; --ink-2:#4c5661; --ink-3:#828c96;
+    --line:#d9dde2; --line-2:#e6e9ed;
+    --accent:#0f6e7b; --accent-soft:#0f6e7b1a;
+    --met:#3f7a4b; --partial:#a9700f; --gap:#a4392f;
+    --track:#e2e5e9;
+    --shadow:0 1px 2px rgba(20,26,32,.04),0 8px 24px rgba(20,26,32,.05);
+  }
+  :root[data-theme="dark"]{
+    --paper:#0d1216; --card:#141a20; --card-2:#171e25;
+    --ink:#e9edf0; --ink-2:#a7b0b9; --ink-3:#6f7982;
+    --line:#242c34; --line-2:#1d242b;
+    --accent:#39b9c7; --accent-soft:#39b9c722;
+    --met:#71c081; --partial:#d7a648; --gap:#e07a70;
+    --track:#1e262d;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.35);
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--paper);color:var(--ink);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.62;letter-spacing:.005em;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1060px;margin:0 auto;padding:clamp(20px,5vw,64px) clamp(16px,4vw,40px)}
+  .mono{font-family:ui-monospace,"SF Mono","JetBrains Mono","Cascadia Code",Menlo,Consolas,monospace}
+  .tnum{font-variant-numeric:tabular-nums}
+
+  .eyebrow{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:.72rem;
+    letter-spacing:.18em;text-transform:uppercase;color:var(--accent);
+    display:flex;gap:.6em;align-items:center;flex-wrap:wrap}
+  .eyebrow .dot{width:5px;height:5px;border-radius:50%;background:var(--accent);display:inline-block}
+  h1{font-family:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;font-weight:650;
+    font-size:clamp(1.85rem,4.4vw,2.9rem);line-height:1.05;letter-spacing:-.01em;
+    margin:.5rem 0 .1rem;text-wrap:balance}
+  .sub{color:var(--ink-2);font-size:1.05rem;max-width:66ch;margin:.4rem 0 0}
+  .masthead{border-bottom:1px solid var(--line);padding-bottom:26px}
+  .glance{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;
+    background:var(--line);border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-top:26px}
+  .glance>div{background:var(--card);padding:16px 18px}
+  .glance .k{font-family:ui-monospace,Menlo,monospace;font-size:1.6rem;font-weight:600;
+    letter-spacing:-.02em;line-height:1}
+  .glance .l{color:var(--ink-3);font-size:.78rem;margin-top:7px;letter-spacing:.02em}
+  .glance .k.good{color:var(--met)} .glance .k.warn{color:var(--partial)}
+
+  section{margin-top:52px}
+  .sec-label{font-family:ui-monospace,Menlo,monospace;font-size:.72rem;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--ink-3);display:flex;align-items:center;gap:.7em;margin-bottom:18px}
+  .sec-label::before{content:"§";color:var(--accent);font-size:.9em}
+  .sec-label .rule{flex:1;height:1px;background:var(--line)}
+  h2{font-size:1.4rem;font-weight:640;letter-spacing:-.01em;margin:0 0 .3rem;text-wrap:balance}
+  p{margin:.8rem 0} .lead{font-size:1.05rem} strong{font-weight:640} .hl{color:var(--accent);font-weight:600}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:clamp(18px,3vw,26px);box-shadow:var(--shadow)}
+
+  /* dual verdict */
+  .verdicts{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  @media(max-width:680px){.verdicts{grid-template-columns:1fr}}
+  .vc{border-radius:14px;padding:22px;border:1px solid var(--line);background:var(--card);box-shadow:var(--shadow);position:relative;overflow:hidden}
+  .vc.pass{border-color:color-mix(in srgb,var(--met) 45%,var(--line))}
+  .vc.fail{border-color:color-mix(in srgb,var(--partial) 45%,var(--line))}
+  .vc .stamp{font-family:ui-monospace,Menlo,monospace;font-size:.7rem;letter-spacing:.12em;
+    text-transform:uppercase;padding:4px 11px;border-radius:100px;display:inline-block;font-weight:600}
+  .vc.pass .stamp{color:var(--met);background:color-mix(in srgb,var(--met) 13%,transparent)}
+  .vc.fail .stamp{color:var(--partial);background:color-mix(in srgb,var(--partial) 13%,transparent)}
+  .vc h3{margin:12px 0 4px;font-size:1.12rem}
+  .vc .crit{font-family:ui-monospace,Menlo,monospace;font-size:.82rem;color:var(--ink-2);margin-top:12px;
+    display:flex;flex-direction:column;gap:6px}
+  .vc .crit b{color:var(--ink)} .vc .crit .ok{color:var(--met)} .vc .crit .no{color:var(--partial)}
+
+  /* measurement delta bars */
+  .metrics{display:grid;gap:2px;background:var(--line);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  .metric{background:var(--card);padding:16px clamp(16px,2.5vw,24px)}
+  .metric-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+  .m-name{font-weight:600;font-size:1rem}
+  .m-name .unit{color:var(--ink-3);font-weight:400;font-size:.82em;margin-left:.4em}
+  .pill{font-family:ui-monospace,Menlo,monospace;font-size:.66rem;letter-spacing:.05em;text-transform:uppercase;
+    padding:3px 9px;border-radius:100px;white-space:nowrap;border:1px solid transparent}
+  .pill.met{color:var(--met);background:color-mix(in srgb,var(--met) 12%,transparent);border-color:color-mix(in srgb,var(--met) 30%,transparent)}
+  .pill.near{color:var(--partial);background:color-mix(in srgb,var(--partial) 12%,transparent);border-color:color-mix(in srgb,var(--partial) 30%,transparent)}
+  .pill.gap{color:var(--gap);background:color-mix(in srgb,var(--gap) 12%,transparent);border-color:color-mix(in srgb,var(--gap) 30%,transparent)}
+  .track{position:relative;height:14px;background:var(--track);border-radius:100px;margin:14px 0 9px;overflow:visible}
+  .fill{height:100%;border-radius:100px;background:linear-gradient(90deg,color-mix(in srgb,var(--accent) 78%,#000),var(--accent));
+    width:var(--w);animation:grow 1s cubic-bezier(.22,.72,.2,1) both;position:relative;z-index:1}
+  .v2mark{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--ink-3);left:var(--v2);z-index:2;opacity:.7}
+  .passline{position:absolute;top:-5px;bottom:-5px;width:0;border-left:2px dashed var(--partial);left:var(--pl);z-index:3}
+  @keyframes grow{from{width:0}to{width:var(--w)}}
+  @media(prefers-reduced-motion:reduce){.fill{animation:none}}
+  .metric-foot{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;
+    font-family:ui-monospace,Menlo,monospace;font-size:.8rem;font-variant-numeric:tabular-nums}
+  .metric-foot .delta{color:var(--met);font-weight:600}
+  .metric-foot .delta.dn{color:var(--gap)}
+  .metric-foot .muted{color:var(--ink-3)}
+  .legend{font-family:ui-monospace,Menlo,monospace;font-size:.74rem;color:var(--ink-3);margin-top:12px;display:flex;gap:18px;flex-wrap:wrap}
+  .legend i{font-style:normal} .legend .sw{display:inline-block;width:20px;height:2px;vertical-align:middle;margin-right:5px}
+
+  /* distribution */
+  .dist{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  @media(max-width:680px){.dist{grid-template-columns:1fr}}
+  .distcard{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px;box-shadow:var(--shadow)}
+  .distcard h3{margin:0 0 14px;font-size:.82rem;letter-spacing:.1em;text-transform:uppercase;font-family:ui-monospace,Menlo,monospace;color:var(--ink-2)}
+  .dots{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:12px}
+  .dots .d{width:20px;height:20px;border-radius:5px;font-family:ui-monospace,monospace;font-size:.6rem;
+    display:flex;align-items:center;justify-content:center;color:#fff}
+  .dots .d.up{background:var(--met)} .dots .d.dn{background:var(--gap)} .dots .d.fl{background:var(--ink-3)}
+  .distcard .big{font-family:ui-monospace,Menlo,monospace;font-size:1.5rem;font-weight:600}
+  .distcard .big b{color:var(--met)} .distcard .cap{color:var(--ink-3);font-size:.85rem}
+
+  /* table */
+  .tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:14px;background:var(--card)}
+  table{border-collapse:collapse;width:100%;min-width:620px;font-variant-numeric:tabular-nums}
+  th,td{padding:8px 13px;text-align:right;font-family:ui-monospace,Menlo,monospace;font-size:.81rem;border-bottom:1px solid var(--line-2)}
+  th{color:var(--ink-3);font-weight:500;font-size:.7rem;letter-spacing:.03em;text-transform:uppercase;position:sticky;top:0;background:var(--card)}
+  td:first-child,th:first-child{text-align:left;color:var(--ink)}
+  tbody tr:hover{background:var(--card-2)} tbody tr:last-child td{border-bottom:0}
+  .up{color:var(--met)} .dn{color:var(--gap)} .fl{color:var(--ink-3)}
+  tr.meanrow td{border-top:2px solid var(--line);background:var(--card-2);font-weight:700}
+  tr.paperrow td{color:var(--ink-3)}
+  .chip{display:inline-block;padding:1px 6px;border-radius:5px;font-size:.72rem}
+  .chip.under{background:color-mix(in srgb,var(--gap) 15%,transparent);color:var(--gap)}
+
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  @media(max-width:680px){.cols{grid-template-columns:1fr}}
+  .ledger{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px;box-shadow:var(--shadow)}
+  .ledger h3{margin:0 0 12px;font-size:.82rem;letter-spacing:.1em;text-transform:uppercase;font-family:ui-monospace,Menlo,monospace;color:var(--partial)}
+  .ledger.next h3{color:var(--accent)}
+  .ledger ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px}
+  .ledger li{display:grid;grid-template-columns:auto 1fr;gap:11px;font-size:.95rem;color:var(--ink-2)}
+  .ledger li .g{font-family:ui-monospace,Menlo,monospace;font-weight:700}
+  .ledger.watch li .g{color:var(--gap)} .ledger.next li .g{color:var(--accent)}
+  .ledger li b{color:var(--ink)} .ledger .mono{color:var(--accent);font-size:.86em}
+
+  .rc{background:var(--card-2);border:1px solid var(--line);border-radius:12px;padding:18px 20px;font-size:.96rem;color:var(--ink-2)}
+  .rc b{color:var(--ink)} .rc .mono{color:var(--accent);font-size:.88em}
+
+  footer{margin-top:56px;padding-top:24px;border-top:1px solid var(--line);color:var(--ink-3);font-size:.85rem}
+  footer .mono{color:var(--ink-2)}
+  .caveat{background:var(--card-2);border:1px solid var(--line);border-left:3px solid var(--partial);
+    border-radius:8px;padding:14px 18px;margin-top:16px;font-size:.9rem;color:var(--ink-2)}
+  .caveat b{color:var(--ink)}
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="eyebrow"><span class="dot"></span> 內部技術檢查點 · Reproduction Review · v3 watershed · 2026-08-10</div>
+    <h1>房間分割修正：機制驗證成功，絕對水準未達標</h1>
+    <p class="sub">MULTIFLOOR3D（HouseLayout3D, NeurIPS 2025）<strong>research reimplementation</strong>（整合作者 Stage 2/3 code＋依 Appendix 自寫 Stage 4；非 strict reproduction）。上一版診斷把落差定位到「房間分割用 Voronoi 中線、非牆屏障 watershed（local variant）」。本文件是該修正的全 16 棟驗證結果，依團隊事前訂定的評估判準。</p>
+    <div style="margin-top:16px;padding:12px 16px;border:1px solid var(--partial);border-left:3px solid var(--partial);border-radius:8px;background:var(--card-2);font-size:.9rem;color:var(--ink-2)"><strong style="color:var(--ink)">2026-08-11 更正</strong>：evaluator bug 修正後 <strong>Stairs F1 0.473 → 0.411（未達論文 0.42，非達標）</strong>——舊版靜默丟棄 5 個非矩形樓梯 GT。撤回先前「stairs 達標」宣稱。詳見 <span class="mono">docs/paper_alignment_audit.md §9.1（FIXED AND TESTED）</span>。</div>
+    <div class="glance">
+      <div><div class="k good tnum">14/16</div><div class="l">structures 改善（doors 13/16）</div></div>
+      <div><div class="k warn tnum">0.217</div><div class="l">structures F1（過關線 0.30）</div></div>
+      <div><div class="k warn tnum">0.210</div><div class="l">doors F1（過關線 0.25）</div></div>
+      <div><div class="k good tnum">0→13</div><div class="l">有偵測到門的棟數（v2→v3）</div></div>
+    </div>
+  </header>
+
+  <!-- DUAL VERDICT -->
+  <section>
+    <div class="sec-label">評估結論 · 依事前註冊判準<span class="rule"></span></div>
+    <div class="verdicts">
+      <div class="vc pass">
+        <span class="stamp">✓ 通過</span>
+        <h3>分布形狀（機制是否普遍有效）</h3>
+        <p style="color:var(--ink-2);font-size:.95rem;margin:.5rem 0 0">團隊判準：<b style="color:var(--ink)">≥12 棟改善＝機制普遍有效，即使幅度小也算成功</b>。</p>
+        <div class="crit">
+          <span><span class="ok">✓</span> structures 改善 <b>14/16</b>（僅 HxpK 變差）</span>
+          <span><span class="ok">✓</span> doors 改善 <b>13/16</b>（17DRP、WYY 變差）</span>
+          <span><span class="ok">✓</span> 0 棟 structures 崩壞；門從全場近乎 0 復活</span>
+        </div>
+      </div>
+      <div class="vc fail">
+        <span class="stamp">✗ 未達</span>
+        <h3>絕對過關線（主判準門檻）</h3>
+        <p style="color:var(--ink-2);font-size:.95rem;margin:.5rem 0 0">兩個主指標均大漲但仍在門檻下，各差約 30%。</p>
+        <div class="crit">
+          <span><span class="no">✗</span> structures <b>0.217</b> &lt; 0.30（差 0.083）</span>
+          <span><span class="no">✗</span> doors <b>0.210</b> &lt; 0.25（差 0.040，接近）</span>
+          <span class="muted" style="color:var(--ink-3)">＝方向正確、機制成立，但未到 paper-competitive 水準</span>
+        </div>
+      </div>
+    </div>
+    <div class="rc" style="margin-top:20px">
+      一句話：<b>「Voronoi → 牆屏障 watershed」是正確的根因修正——它讓幾乎每一棟都變好、把門從字面上的 0 救回來，證明機制成立。但絕對 F1 水準（structures 0.22、doors 0.21）距團隊設的 0.30 / 0.25 各差約三成，仍需第二輪收尾。</b>
+    </div>
+  </section>
+
+  <!-- DELTA BARS -->
+  <section>
+    <div class="sec-label">v2 → v3 均值（16 棟）· 相對論文 Table 2/3<span class="rule"></span></div>
+    <div class="metrics">
+      <div class="metric">
+        <div class="metric-head"><span class="m-name">Structures F1 <span class="unit">主判準</span></span><span class="pill gap">未過 0.30</span></div>
+        <div class="track"><div class="passline" style="--pl:75%"></div><div class="v2mark" style="--v2:40%"></div><div class="fill" style="--w:54%"></div></div>
+        <div class="metric-foot"><span><span class="muted">v2 0.162 →</span> <b>0.217</b> <span class="delta">+34%</span></span><span class="muted">過關線 0.30 · 論文 0.40</span></div>
+      </div>
+      <div class="metric">
+        <div class="metric-head"><span class="m-name">Doors F1 <span class="unit">主判準</span></span><span class="pill near">近 0.25</span></div>
+        <div class="track"><div class="passline" style="--pl:45%"></div><div class="v2mark" style="--v2:4%"></div><div class="fill" style="--w:38%"></div></div>
+        <div class="metric-foot"><span><span class="muted">v2 0.023 →</span> <b>0.210</b> <span class="delta">×9</span></span><span class="muted">過關線 0.25 · 論文 0.55</span></div>
+      </div>
+      <div class="metric">
+        <div class="metric-head"><span class="m-name">Windows F1 <span class="unit">次判準</span></span><span class="pill near">略降</span></div>
+        <div class="track"><div class="passline" style="--pl:81%"></div><div class="v2mark" style="--v2:66%"></div><div class="fill" style="--w:63%"></div></div>
+        <div class="metric-foot"><span><span class="muted">v2 0.284 →</span> <b>0.271</b> <span class="delta dn">−5%</span></span><span class="muted">期待 0.35 · 論文 0.43</span></div>
+      </div>
+      <div class="metric">
+        <div class="metric-head"><span class="m-name">Stairs F1 <span class="unit">次判準 · evaluator 修正後</span></span><span class="pill near">未達 0.42</span></div>
+        <div class="track"><div class="passline" style="--pl:100%"></div><div class="v2mark" style="--v2:113%"></div><div class="fill near" style="--w:98%;background:linear-gradient(90deg,color-mix(in srgb,var(--partial) 82%,#000),var(--partial))"></div></div>
+        <div class="metric-foot"><span><span class="muted">舊(bug) 0.473 →</span> <b>0.411</b> <span class="delta dn">−0.062 修正</span></span><span class="muted">論文 0.42 · <span class="mono">未達</span></span></div>
+      </div>
+      <div class="metric">
+        <div class="metric-head"><span class="m-name">Δ5 深度 <span class="unit">參考值·非主判準</span></span><span class="pill near">參考</span></div>
+        <div class="track"><div class="v2mark" style="--v2:65%"></div><div class="fill" style="--w:74%"></div></div>
+        <div class="metric-foot"><span><span class="muted">v2 40.0 →</span> <b>45.2</b> <span class="delta">+5.2</span></span><span class="muted">論文 61.1 · depth 是 proxy</span></div>
+      </div>
+    </div>
+    <div class="legend">
+      <i><span class="sw" style="background:var(--accent)"></span>v3 水準</i>
+      <i><span class="sw" style="background:var(--ink-3)"></span>v2 位置</i>
+      <i><span class="sw" style="border-top:2px dashed var(--partial)"></span>過關線</i>
+      <i>軌道 0 → 論文值</i>
+    </div>
+  </section>
+
+  <!-- DISTRIBUTION -->
+  <section>
+    <div class="sec-label">改善的分布形狀 · 團隊判準的核心<span class="rule"></span></div>
+    <div class="dist">
+      <div class="distcard">
+        <h3>Structures — 逐棟改善?</h3>
+        <div class="dots">
+          <span class="d up">↑</span><span class="d up">↑</span><span class="d up">↑</span><span class="d up">↑</span><span class="d up">↑</span><span class="d up">↑</span><span class="d up">↑</span><span class="d up">↑</span><span class="d up">↑</span><span class="d up">↑</span><span class="d up">↑</span><span class="d up">↑</span><span class="d up">↑</span><span class="d up">↑</span><span class="d dn">↓</span><span class="d fl">=</span>
+        </div>
+        <div class="big"><b>14</b> 改善 · 1 變差 · 1 持平</div>
+        <div class="cap">變差：HxpK（0.25→0.14，欠分割 3 房 vs GT 8）</div>
+      </div>
+      <div class="distcard">
+        <h3>Doors — 逐棟改善?</h3>
+        <div class="dots">
+          <span class="d up">↑</span><span class="d up">↑</span><span class="d up">↑</span><span class="d up">↑</span><span class="d up">↑</span><span class="d up">↑</span><span class="d up">↑</span><span class="d up">↑</span><span class="d up">↑</span><span class="d up">↑</span><span class="d up">↑</span><span class="d up">↑</span><span class="d up">↑</span><span class="d dn">↓</span><span class="d dn">↓</span><span class="d fl">=</span>
+        </div>
+        <div class="big"><b>13</b> 改善 · 2 變差 · 1 持平</div>
+        <div class="cap">變差：17DRP、WYY（新門寬帶把 v2 抓到的門濾掉）</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PER-SCENE -->
+  <section>
+    <div class="sec-label">逐棟 v2 → v3（依 structures 排序）<span class="rule"></span></div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>場景</th><th>層</th><th>Struct v2→v3</th><th>Doors v2→v3</th><th>Δ5</th><th>房數/GT</th></tr></thead>
+        <tbody>
+          <tr><td>JeFG25nYj2p</td><td>1</td><td>0.23 → <span class="up">0.29</span></td><td>0.00 → <span class="up">0.18</span></td><td>53.7</td><td>19/22</td></tr>
+          <tr><td>i5noydFURQK</td><td>2</td><td>0.17 → <span class="up">0.29</span></td><td>0.00 → <span class="up">0.30</span></td><td>56.1</td><td>16/14</td></tr>
+          <tr><td>17DRP5sb8fy</td><td>1</td><td>0.19 → <span class="up">0.29</span></td><td>0.22 → <span class="dn">0.00</span></td><td>54.2</td><td>10/10</td></tr>
+          <tr><td>S9hNv5qa7GM</td><td>2</td><td>0.16 → <span class="up">0.28</span></td><td>0.00 → <span class="up">0.50</span></td><td>53.4</td><td>18/10</td></tr>
+          <tr><td>WYY7iVyf5p8</td><td>4</td><td>0.26 → <span class="up">0.27</span></td><td>0.08 → <span class="dn">0.00</span></td><td>48.4</td><td>15/12</td></tr>
+          <tr><td>TbHJrupSAjP</td><td>3</td><td>0.21 → <span class="up">0.26</span></td><td>0.00 → <span class="up">0.09</span></td><td>50.7</td><td>29/16</td></tr>
+          <tr><td>YFuZgdQ5vWj</td><td>2</td><td>0.21 → <span class="up">0.24</span></td><td>0.00 → <span class="up">0.42</span></td><td>52.6</td><td>15/24</td></tr>
+          <tr><td>2t7WUuJeko7</td><td>1</td><td>0.10 → <span class="up">0.23</span></td><td>0.00 → <span class="up">0.44</span></td><td>68.2</td><td>7/6</td></tr>
+          <tr><td>JmbYfDe2QKZ</td><td>2</td><td>0.20 → <span class="fl">0.20</span></td><td>0.00 → <span class="up">0.12</span></td><td>41.4</td><td>19/12</td></tr>
+          <tr><td>e9zR4mvMWw7</td><td>3</td><td>0.12 → <span class="up">0.19</span></td><td>0.00 → <span class="up">0.35</span></td><td>48.8</td><td>22/13</td></tr>
+          <tr><td>r47D5H71a5s</td><td>1</td><td>0.17 → <span class="up">0.18</span></td><td>0.00 → <span class="up">0.21</span></td><td>44.2</td><td>21/21</td></tr>
+          <tr><td>p5wJjkQkbXX</td><td>2</td><td>0.09 → <span class="up">0.17</span></td><td>0.00 → <span class="up">0.14</span></td><td>35.3</td><td>31/37</td></tr>
+          <tr><td>5LpN3gDmAk7</td><td>2</td><td>0.07 → <span class="up">0.16</span></td><td>0.00 → <span class="up">0.36</span></td><td>22.3</td><td>20/15</td></tr>
+          <tr><td>jtcxE69GiFV</td><td>2</td><td>0.10 → <span class="up">0.15</span></td><td>0.00 → <span class="up">0.12</span></td><td>30.3</td><td>33/22</td></tr>
+          <tr><td>HxpKQynjfin</td><td>1</td><td>0.25 → <span class="dn">0.14</span></td><td>0.00 → <span class="fl">0.00</span></td><td>43.3</td><td><span class="chip under">3/8</span></td></tr>
+          <tr><td>1LXtFkjw3qL</td><td>3</td><td>0.07 → <span class="up">0.12</span></td><td>0.06 → <span class="up">0.13</span></td><td>20.7</td><td>38/26</td></tr>
+          <tr class="meanrow"><td>均值</td><td>—</td><td>0.16 → 0.22</td><td>0.02 → 0.21</td><td>45.2</td><td>—</td></tr>
+          <tr class="paperrow"><td>論文</td><td>—</td><td>0.40</td><td>0.55</td><td>61.1</td><td>—</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="mono" style="color:var(--ink-3);font-size:.82rem;margin-top:12px">房數/GT：多數棟合理至略過分割；HxpK（3/8）是唯一嚴重欠分割且 structures 唯一變差的棟——優先調查。</p>
+  </section>
+
+  <!-- ROOT CAUSE -->
+  <section>
+    <div class="sec-label">這次改了什麼 · 一行根因<span class="rule"></span></div>
+    <div class="card">
+      <p class="lead" style="margin-top:0">房間分割的 <span class="mono" style="color:var(--accent)">_split_rooms</span> 原本是「侵蝕種子 → 最近種子回填」＝<b>Voronoi 中線</b>，房間邊界落在兩房中線、<strong>不貼牆</strong>。改成 HOV-SG 原始作法：把 prototype 的牆光柵化成屏障，於牆影像上 <span class="mono" style="color:var(--accent)">cv2.watershed</span>，分水嶺脊線落在牆上、門洞處兩房自然相接。</p>
+      <p style="color:var(--ink-2);margin-bottom:0">一個修正級聯到四個指標：房間切得準 → 門有正確鄰接可偵（0→0.21）→ 擠出器沿房界立的牆落在真牆上 → structures／depth 一起回收。這印證了「擠出器問題是房間分割的下游、該擺後面」的排序判斷。</p>
+    </div>
+  </section>
+
+  <!-- NEXT -->
+  <section>
+    <div class="sec-label">收尾槓桿 · 逐棟中間產物已保留（每棟 5 分鐘可重跑調參）<span class="rule"></span></div>
+    <div class="cols">
+      <div class="ledger watch">
+        <h3>◇ 必查的變差棟</h3>
+        <ul>
+          <li><span class="g">!</span><span><b>HxpK</b>：structures 0.25→0.14，欠分割（3 房 vs GT 8）。<span class="mono">ROOM_CORE_MIN</span> 尺度敏感——與早前 K-bug 同類，早已列為第一嫌疑。</span></li>
+          <li><span class="g">!</span><span><b>17DRP / WYY 門變差</b>：新門寬帶 [0.55,1.30] 太嚴，濾掉了 v2 抓到的門。放寬或自適應即可回收。</span></li>
+        </ul>
+      </div>
+      <div class="ledger next">
+        <h3>◆ 往 0.30 / 0.25 的下一步</h3>
+        <ul>
+          <li><span class="g">1</span><span><b>ROOM_CORE_MIN 自適應</b>（隨場景尺度縮放）→ 修欠/過分割，拉 structures。</span></li>
+          <li><span class="g">2</span><span><b>放寬門寬帶</b>→ 回收 17DRP/WYY，doors 均值往 0.25 補。</span></li>
+          <li><span class="g">3</span><span><b>直接門偵測</b>（用 OneFormer door 語意）→ 處理 adjacency 數學上偵不到的 42% 門，是穩過 0.25、逼近論文 0.55 的必要第二步。</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p class="mono">全 16 棟 rc=0 · 產物 <span style="color:var(--ink)">outputs/mp3d/&lt;scene&gt;/stage4/</span> · 評估判準 <span style="color:var(--ink)">docs/eval_standard_watershed.md</span> · 參數審計 <span style="color:var(--ink)">docs/param_audit_watershed.md</span> · aggregate 已交叉驗證（派工器自算＝log 解析）</p>
+    <div class="caveat">
+      <b>誠實邊界</b>：evaluator 已對官方 16 棟預測校準到重合，量測可信。depth（Δ5/Δ10）非主判準——論文自述它是「缺 layout 標註時的 proxy」。doors 的 0.25 過關線是天花板現實：實測 170/292（58%）GT 門落在 GT-region 邊界，adjacency-only 方法數學上到不了論文 0.55，故第 3 步（直接門偵測）為必要而非可選。單棟 2t7W 兩次跑（66.4 / 68.2）一致，結果可複現。
+    </div>
+  </footer>
+
+</div>

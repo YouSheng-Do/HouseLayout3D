@@ -1,0 +1,59 @@
+# Local agent/editor state
+.agents/
+.claude/
+.codex/
+.local-tools/
+.vscode/
+.idea/
+
+# Credentials and machine-local configuration
+.env
+.env.*
+*.pem
+*.key
+credentials*
+
+# Python caches and environments
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+envs/
+.venv/
+venv/
+
+# Datasets, model caches, checkpoints, and downloaded dependencies
+data/
+.cache/
+external/
+checkpoints/
+weights/
+*.ckpt
+*.pth
+*.pt
+*.onnx
+
+# Generated pipeline/evaluation artifacts and logs
+outputs/
+setup/logs/
+wandb/
+mlruns/
+*.log
+
+# Downloaded paper/supplementary archives (documented separately)
+docs/supplementary/
+docs/supplementary.zip
+docs/*.pdf
+HouseLayout3D A Benchmark and Training-Free Baseline for 3D Layout Estimation in the Wild.pdf
+*.tar.gz
+*.zip
+
+# OS/editor debris
+.DS_Store
+Thumbs.db
+*~
+*.swp
+
