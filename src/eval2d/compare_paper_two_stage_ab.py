@@ -375,8 +375,6 @@ def main():
         ],
     }
     comparison_path = OUT / "comparison.json"
-    comparison_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2,
-                                          sort_keys=True) + "\n")
 
     def row(partition, method):
         value = metrics[partition][method]
@@ -386,6 +384,28 @@ def main():
 
     paper_all = metrics["all"]["paper_spec_two_stage"]
     water_all = metrics["all"]["watershed_v3_rerun"]
+    paper_doors = paper_all["doors_0_5"]
+    water_doors = water_all["doors_0_5"]
+    opening_status = {method: {} for method in METHODS}
+    for method in METHODS:
+        counts = {}
+        for path in (EXPERIMENT / method).glob("*.diagnostics.json"):
+            diagnostics = json.load(path.open())
+            for level in diagnostics["levels"]:
+                for opening in level["bottlenecks"]:
+                    status = opening.get("canonical_export_status", "legacy")
+                    counts[status] = counts.get(status, 0) + 1
+        opening_status[method] = counts
+    payload["door_annotation"] = {
+        "paper_doors@0.5": paper_doors,
+        "watershed_doors@0.5": water_doors,
+        "opening_export_status": opening_status,
+        "paper_contract": (
+            "oriented bottleneck rectangle; width <1.5m; direct room pair; "
+            "drop canonical door if either room geometry was not exported"),
+    }
+    comparison_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2,
+                                          sort_keys=True) + "\n")
     best = max(rows, key=lambda value: value["delta_f1"])
     worst = min(rows, key=lambda value: value["delta_f1"])
     report = f"""# paper_spec_two_stage vs watershed_v3 — Same-input A/B v0.1
@@ -423,6 +443,12 @@ def main():
 - paper 最大 scene gain：`{best['scene']}`，ΔF1 {best['delta_f1']:+.3f}；最大 drop：`{worst['scene']}`，ΔF1 {worst['delta_f1']:+.3f}。
 
 這表示 2.5 m coarse split 被保留、再以 1.5 m refinement 新增小 cell 的規則，在目前帶噪牆／floorplan 輸入上會放大窄連接與碎片；但少數原本 watershed 欠分割的場景確實受益。
+
+## Paper door/opening annotation
+
+paper path 現在保存 bottleneck 的 oriented 2D rectangle、segment、width、stage 與 direct `room_a/room_b`；`width <1.5m` 才輸出 door，較寬者保留在 diagnostics 作 opening。若任一相鄰 room 沒有成功 polygonize，該 bottleneck 仍留在 diagnostics，但以 `dropped_missing_room_geometry` 標記，不建立 dangling canonical door/edge。
+
+全 16 scenes 有 **{opening_status['paper_spec_two_stage'].get('exported_direct_door', 0)}** 個有效 paper doors、**{opening_status['paper_spec_two_stage'].get('diagnostic_opening_only', 0)}** 個 non-door openings、**{opening_status['paper_spec_two_stage'].get('dropped_missing_room_geometry', 0)}** 個因缺 room geometry 未輸出的 door candidates。Doors@0.5 是 paper **{paper_doors['f1']:.3f}**（P {paper_doors['p']:.3f} / R {paper_doors['r']:.3f}）vs watershed **{water_doors['f1']:.3f}**（P {water_doors['p']:.3f} / R {water_doors['r']:.3f}）。因此 paper bottleneck-only doors 目前不足以作研究用 annotation 主線；下一個 best-variant 槓桿仍是 direct semantic door detection/fusion。
 
 ## 「paper-spec」的精確邊界
 

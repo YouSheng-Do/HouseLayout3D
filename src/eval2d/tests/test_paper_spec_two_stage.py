@@ -5,7 +5,9 @@ import sys
 import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from paper_spec_two_stage import split_once, two_stage_labels  # noqa: E402
+from paper_spec_two_stage import (  # noqa: E402
+    _opening_from_border, split_once, two_stage_labels,
+)
 
 
 RES = 0.10
@@ -64,6 +66,16 @@ def main():
     empty, diag = two_stage_labels(np.zeros((20, 20), dtype=bool), RES)
     checks["empty floor is deterministic empty"] = (
         int(empty.max()) == 0 and diag["final_cells"] == 0)
+
+    border = np.zeros((20, 20), dtype=bool)
+    border[5:15, 8] = True
+    segment, width, rectangle = _opening_from_border(
+        border, np.array([0.0, 0.0]), RES)
+    checks["bottleneck stores finite oriented rectangle"] = (
+        segment.shape == (2, 2) and rectangle.shape == (4, 2)
+        and np.isfinite(rectangle).all())
+    checks["bottleneck width follows rectangle major axis"] = (
+        abs(width - 0.9) < 1e-9)
 
     for name, passed in checks.items():
         print(f"  {'PASS' if passed else 'FAIL'} {name}")

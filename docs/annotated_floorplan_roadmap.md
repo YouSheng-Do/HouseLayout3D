@@ -375,6 +375,13 @@ morphology internals、作者 Stage-4 code 未釋出，本路徑不稱 author-co
 
 ### 8.1 Doors 與 openings
 
+**狀態（2026-08-12）：paper path `FIXED AND TESTED`；best extension `OPEN`。**
+paper bottleneck 已保存 oriented rectangle、width、stage 與 direct room pair；
+缺 canonical room geometry 的 candidate 會明確 drop，不再留下 dangling edge。
+all-16 有 81 doors、57 non-door openings、10 dropped candidates；Doors@0.5
+paper **0.043** vs watershed **0.243**。因此 downstream 暫不採 paper
+bottleneck-only doors，下一步 best variant 仍是 direct semantic fusion。
+
 ### Paper-spec
 
 - 使用 two-stage segmentation 的 bottleneck boundaries；
@@ -400,6 +407,14 @@ Direct semantic detection 是研究擴充，不得寫成 paper method。
 - direct/fused variant：**2–4 天**。
 
 ### 8.2 Windows
+
+**狀態（2026-08-12）：paper class-set A/B `FIXED AND TESTED`。**
+已加入 `outdoor` 並建立 released rectangle → 2D segment evaluator。all-16
+legacy three classes vs paper + outdoor：使用預註冊 endpoint-max contract 重評後，
+Windows@0.5 為 **0.333 → 0.311**；recall
+0.446→0.446（0 新 TP），但 637→709 candidates 使 precision 0.265→0.238。
+paper branch 保留 outdoor；annotated-best 暫留 three-class control。詳見
+`docs/window_rays_ab_v0_1.md`。
 
 需要：
 
@@ -674,8 +689,9 @@ Stage 3 A/B 應優先觀察：
 3. `[FIXED AND TESTED]` 建 canonical artifact 與 schema。
 4. `[FIXED AND TESTED]` 實作 `paper_spec_two_stage`，與 `watershed_v3`
    做相同輸入 A/B；結果支持 downstream 保留 watershed。
-5. `[OPEN]` 實作 paper 2D door rule與 `outdoor` window rays。paper door rule
-   已隨 A/B 產出供診斷，但尚未完成完整 annotation-layer 驗收。
+5. `[FIXED AND TESTED]` 實作 paper 2D door rule與 `outdoor` window rays。
+   兩者都完成 dev／held-out／all checkpoint；paper alignment 均未改善 best
+   headline，因此 paper/best branches 繼續分開。
 6. `[DEFERRED / OUT OF SCOPE]` 此區段先不改 Stage 2/3，也不做
    direct-door extension。
 

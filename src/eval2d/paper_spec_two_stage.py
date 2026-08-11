@@ -155,16 +155,25 @@ def _opening_from_border(border: np.ndarray, origin: np.ndarray,
     if not len(points):
         return None
     if len(points) == 1:
-        return points[[0, 0]], 0.0
+        rectangle = np.repeat(points, 4, axis=0)
+        return points[[0, 0]], 0.0, rectangle
     centre = points.mean(axis=0)
     _, _, vh = np.linalg.svd(points - centre, full_matrices=False)
     direction = vh[0]
+    perpendicular = np.array([-direction[1], direction[0]])
     positions = (points - centre) @ direction
+    transverse = (points - centre) @ perpendicular
     segment = np.array([
         centre + positions.min() * direction,
         centre + positions.max() * direction,
     ])
-    return segment, float(positions.max() - positions.min())
+    rectangle = np.array([
+        centre + positions.min() * direction + transverse.min() * perpendicular,
+        centre + positions.min() * direction + transverse.max() * perpendicular,
+        centre + positions.max() * direction + transverse.max() * perpendicular,
+        centre + positions.max() * direction + transverse.min() * perpendicular,
+    ])
+    return segment, float(positions.max() - positions.min()), rectangle
 
 
 def segment_level(level, wall_buffer_m: float = 0.08,
@@ -220,13 +229,14 @@ def segment_level(level, wall_buffer_m: float = 0.08,
             opening = _opening_from_border(border, origin, resolution_m)
             if opening is None:
                 continue
-            segment, width = opening
+            segment, width, rectangle = opening
             stage = ("2.5m" if room_a["coarse_id"] != room_b["coarse_id"]
                      else "1.5m")
             level.openings.append({
                 "rooms": (room_a["id"], room_b["id"]),
                 "width": width,
                 "seg": segment,
+                "oriented_rectangle": rectangle,
                 "is_door": bool(width < door_max_width_m),
                 "bottleneck_stage": stage,
                 "provenance": "paper_spec_morphology_bottleneck_boundary",

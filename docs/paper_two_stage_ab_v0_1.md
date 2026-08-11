@@ -28,6 +28,18 @@ vs `-0.26`，MAE 是 `7.20` vs `2.26`。paired scenes 中 paper 較好 2/16、
 決策：研究用 annotated floorplan downstream 暫留 `watershed_v3`；
 `paper_spec_two_stage` 保留為 paper-alignment / ablation，不混寫 provenance。
 
+## Door/opening annotation 更新
+
+paper bottleneck 現保存 oriented 2D rectangle、segment、width、2.5/1.5 m stage 與
+direct `room_a/room_b`。`width <1.5m` 才輸出 canonical door；較寬者保留為
+diagnostic opening。若相鄰 room 沒有成功 polygonize，candidate 仍保留在 diagnostics，
+但標為 `dropped_missing_room_geometry`，不建立 dangling door/graph edge。
+
+全量有 81 個有效 paper doors、57 個 non-door openings、10 個因缺 room geometry
+而不輸出的 door candidates。Doors@0.5：paper **0.043**（P 0.099 / R 0.027），
+watershed **0.243**（P 0.420 / R 0.171）。因此 paper bottleneck-only doors 不足以
+作 annotated-best 主線，下一個 best-variant 槓桿是 direct semantic door fusion。
+
 ## Faithfulness boundary
 
 [HouseLayout3D Appendix D.3](https://openreview.net/pdf/e20998737506e658d49d8d9d073931ac459638c7.pdf)
@@ -55,9 +67,9 @@ hierarchy-aware polygonizer。
 - generator 不讀 GT 或 evaluator scores；CPU-only，未跑 Stage 2/3、extrusion、GPU。
 - 每棟 prototype load 一次、`identify_levels` 一次，再 deep-copy 給兩方法。
 - 32 canonical artifacts 通過 v0.2 schema；兩法 predicted levels/elevations 一致。
-- synthetic D.3 contract：7/7 PASS。
-- formal artifact invariants：10/10 PASS。
-- evaluator regression：matching 12/12、strict level 11/11、geometry 13/13、
+- synthetic D.3 contract：9/9 PASS。
+- formal artifact invariants：12/12 PASS。
+- evaluator regression：matching 14/14、strict level 11/11、geometry 16/16、
   split 8/8、legacy canonical round-trip/equivalence 全 PASS。
 
 Generated artifacts：

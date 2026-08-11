@@ -81,6 +81,44 @@ def main():
     _, records = derive_access_graph([room], [door], d=0.30)
     checks["PIP respects hole"] = records[0]["probe_a"] == [] and records[0]["probe_b"] == []
 
+    # Method-native room adjacency must survive canonicalization.  Falling
+    # back to geometry probes here would discard the D.3 bottleneck edge.
+    room_a = to_json_geometry(Polygon([(0, 0), (2, 0), (2, 2), (0, 2)]))
+    room_b = to_json_geometry(Polygon([(2, 0), (4, 0), (4, 2), (2, 2)]))
+    direct_pred = {
+        "scene": "direct-door-fixture", "level_z": {0: 0.0},
+        "rooms": [
+            {"idx": "a", "level": 0, "geometry": room_a, "type": "unknown"},
+            {"idx": "b", "level": 0, "geometry": room_b, "type": "unknown"},
+        ],
+        "doors": [{
+            "idx": "bottleneck", "level": 0,
+            "seg": np.array([[2.0, 0.5], [2.0, 1.5]]),
+            "width_m": 1.0, "room_a": "a", "room_b": "b",
+            "association_status": "direct_bottleneck_boundary",
+            "provenance": "paper_spec_morphology_bottleneck_boundary",
+        }],
+    }
+    direct = build_canonical(direct_pred, baseline_id="direct-fixture")
+    direct_door = direct["levels"][0]["doors"][0]
+    direct_edge = direct["levels"][0]["graph"]["edges"][0]
+    checks["direct door room association preserved"] = (
+        direct_door["room_a"] == "a" and direct_door["room_b"] == "b"
+        and direct_door["association_status"] == "direct_bottleneck_boundary")
+    checks["direct bottleneck graph edge preferred over probe"] = (
+        direct_edge["rooms"] == ["a", "b"]
+        and direct_edge["status"] == "direct_bottleneck_boundary"
+        and direct["levels"][0]["graph"]["edge_status"] ==
+        "direct_method_associations")
+    invalid_pred = dict(direct_pred)
+    invalid_pred["doors"] = [dict(direct_pred["doors"][0], room_b="missing")]
+    try:
+        build_canonical(invalid_pred, baseline_id="invalid-direct-fixture")
+        rejects_dangling = False
+    except ValueError:
+        rejects_dangling = True
+    checks["canonical rejects dangling direct room reference"] = rejects_dangling
+
     for name, passed in checks.items():
         print(f"  {'PASS' if passed else 'FAIL'} {name}")
     print(f"\n{sum(checks.values())}/{len(checks)} PASS")

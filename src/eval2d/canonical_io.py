@@ -125,27 +125,54 @@ def build_canonical(pred, baseline_id="watershed_v3_pre_report",
 
         access_doors = []
         doors_json = []
+        direct_edges = []
+        room_ids = {room["idx"] for room in rooms}
         for index, door in enumerate(doors):
             door_id = f"L{level}_D{index:04d}"
             segment = np.asarray(door["seg"], dtype=np.float64)
             access_doors.append(Door(door_id, segment[0], segment[1]))
-            doors_json.append({
+            room_a = door.get("room_a")
+            room_b = door.get("room_b")
+            direct = room_a is not None and room_b is not None
+            if direct:
+                invalid = {value for value in (room_a, room_b)
+                           if value != "OUTSIDE" and value not in room_ids}
+                if invalid:
+                    raise ValueError(
+                        f"door {door.get('idx', door_id)} references unknown "
+                        f"rooms on level {level}: {sorted(invalid, key=str)}")
+            door_json = {
                 "id": door_id,
                 "segment": _segment_json(segment),
-                "width_m": _finite_float(np.linalg.norm(segment[1] - segment[0])),
-                "room_a": None,
-                "room_b": None,
-                "association_status": "unresolved",
+                "width_m": _finite_float(door.get(
+                    "width_m", np.linalg.norm(segment[1] - segment[0]))),
+                "room_a": room_a if direct else None,
+                "room_b": room_b if direct else None,
+                "association_status": (door.get(
+                    "association_status", "direct_method_association")
+                    if direct else "unresolved"),
                 "confidence": door.get("confidence"),
                 "provenance": door.get(
                     "provenance", "watershed_v3_frozen_opening_geometry"),
-            })
+            }
+            doors_json.append(door_json)
+            if direct:
+                kind = ("room-outside-candidate" if "OUTSIDE" in (room_a, room_b)
+                        else "room-room")
+                direct_edges.append({
+                    "door_id": door_id,
+                    "rooms": [room_a, room_b],
+                    "kind": kind,
+                    "status": door_json["association_status"],
+                })
 
         _, records = derive_access_graph(
             access_rooms, access_doors, d=d_probe) if access_doors else ({}, [])
         record_by_id = {record["door_id"]: record for record in records}
-        edges = []
+        edges = list(direct_edges)
         for door in doors_json:
+            if door["association_status"] != "unresolved":
+                continue
             record = record_by_id.get(door["id"])
             if record is None:
                 continue
@@ -180,7 +207,11 @@ def build_canonical(pred, baseline_id="watershed_v3_pre_report",
                            "type_raw": room["type_raw"]}
                           for room in rooms_json],
                 "edges": edges,
-                "edge_status": "derived_geometry_candidates",
+                "edge_status": (
+                    "direct_method_associations" if direct_edges and
+                    len(direct_edges) == len(doors_json)
+                    else "mixed_direct_and_derived" if direct_edges
+                    else "derived_geometry_candidates"),
                 "probe_distance_m": _finite_float(d_probe),
             },
         })

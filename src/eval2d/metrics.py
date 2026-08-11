@@ -150,6 +150,39 @@ def match_doors(pred_doors, gt_doors, thr):
     return (tp, len(P)-tp, len(G)-tp)
 
 
+def match_segments_endpoint(pred_segments, gt_segments, thr):
+    """Segment endpoint max-error ≤thr, orientation invariant, Hungarian.
+
+    This is the frozen Windows@0.2/0.5 contract.  It deliberately differs
+    from the door midpoint metric: a segment with the right centre but wrong
+    length or direction must not count as a correct window.
+    """
+    if not pred_segments and not gt_segments:
+        return (0, 0, 0)
+    if not pred_segments or not gt_segments:
+        return (0, len(pred_segments), len(gt_segments))
+
+    def stable_key(item):
+        segment = np.asarray(item["seg"], dtype=float)
+        endpoints = sorted(tuple(np.round(point, 9)) for point in segment)
+        return endpoints[0] + endpoints[1] + (str(item.get("idx", "")),)
+
+    pred_segments = sorted(pred_segments, key=stable_key)
+    gt_segments = sorted(gt_segments, key=stable_key)
+    pred = np.asarray([item["seg"] for item in pred_segments], dtype=float)
+    gt = np.asarray([item["seg"] for item in gt_segments], dtype=float)
+    direct = np.linalg.norm(
+        pred[:, None, :, :] - gt[None, :, :, :], axis=3).max(axis=2)
+    flipped = np.linalg.norm(
+        pred[:, None, :, :] - gt[None, :, ::-1, :], axis=3).max(axis=2)
+    distances = np.minimum(direct, flipped)
+    cost = np.where(distances <= thr, distances, 1e6)
+    rows, columns = linear_sum_assignment(cost)
+    tp = int(sum(distances[row, column] <= thr
+                 for row, column in zip(rows, columns)))
+    return (tp, len(pred)-tp, len(gt)-tp)
+
+
 def derive_edges(rooms, doors, d=0.30):
     """rooms/doors dict list → room_room set(frozenset ids), room_outside set(ids)。"""
     R = [Room(id=r["idx"], type=r.get("type", "?"),

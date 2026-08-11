@@ -5,7 +5,7 @@ empty、door permutation/boundary、concave、invalid-polygon policy。"""
 import os, sys
 import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from metrics import match_rooms_iou, match_doors
+from metrics import match_rooms_iou, match_doors, match_segments_endpoint
 import importlib.util
 # v1 greedy（archived）供對照
 _spec = importlib.util.spec_from_file_location(
@@ -98,6 +98,15 @@ def t_door_perm():
     r1 = match_doors(pr, gt, 0.5); r2 = match_doors(pr[::-1], gt[::-1], 0.5)
     check("8 door permutation invariance", r1 == r2)
 
+def t_window_endpoint_contract():
+    gt = [door([[0, 0], [2, 0]])]
+    same_reversed = [door([[2, 0], [0, 0]])]
+    wrong_length_same_centre = [door([[0.75, 0], [1.25, 0]])]
+    check("8b window endpoint orientation invariant",
+          match_segments_endpoint(same_reversed, gt, 0.2) == (1, 0, 0))
+    check("8c window rejects same-centre wrong length",
+          match_segments_endpoint(wrong_length_same_centre, gt, 0.5) == (0, 1, 1))
+
 # 9) door threshold boundary（中點距離恰 = thr → 命中；> thr → 不中）
 def t_door_boundary():
     g = [door([[0, 0], [1, 0]])]                 # 中點 (0.5,0)
@@ -133,7 +142,9 @@ def t_invalid_policy():
 
 
 for t in [t_perm_pred, t_perm_gt, t_hungarian_adversarial, t_exact_tie_permutation, t_iou_boundary,
-          t_empty_gt, t_empty_pred, t_both_empty, t_door_perm, t_door_boundary, t_concave, t_invalid_policy]:
+          t_empty_gt, t_empty_pred, t_both_empty, t_door_perm,
+          t_window_endpoint_contract, t_door_boundary, t_concave,
+          t_invalid_policy]:
     t()
 npass = sum(ok for _, ok in RESULTS)
 print(f"\n{npass}/{len(RESULTS)} PASS")

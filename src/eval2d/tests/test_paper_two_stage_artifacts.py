@@ -68,6 +68,8 @@ def main():
     same_levels = True
     unknown_types = True
     paper_door_rule = True
+    direct_references = True
+    paper_dropped = 0
     for scene in scenes:
         artifacts = {}
         for method in METHODS:
@@ -94,6 +96,17 @@ def main():
                         for level in artifacts[METHODS[1]]["levels"]]
         same_levels &= paper_levels == water_levels
 
+        for level in artifacts["paper_spec_two_stage"]["levels"]:
+            room_ids = {room["id"] for room in level["rooms"]}
+            edge_by_door = {
+                edge["door_id"]: edge for edge in level["graph"]["edges"]}
+            for door in level["doors"]:
+                direct_references &= (
+                    door["association_status"] == "direct_bottleneck_boundary"
+                    and door["room_a"] in room_ids
+                    and door["room_b"] in room_ids
+                    and door["id"] in edge_by_door)
+
         diagnostics = json.load(
             (BASE / "paper_spec_two_stage" /
              f"{scene}.diagnostics.json").open())
@@ -102,6 +115,9 @@ def main():
                 paper_door_rule &= (
                     opening["is_door"] == (opening["width_m"] < 1.5))
                 paper_door_rule &= opening["bottleneck_stage"] in {"2.5m", "1.5m"}
+                paper_dropped += (
+                    opening.get("canonical_export_status") ==
+                    "dropped_missing_room_geometry")
 
     check("32 canonical artifacts pass v0.2 schema", all_valid)
     check("manifest hashes verify all canonical files", files_hash)
@@ -109,6 +125,10 @@ def main():
     check("paired methods preserve identical predicted levels/elevations", same_levels)
     check("room type disabled symmetrically", unknown_types)
     check("paper diagnostics obey <1.5m door rule", paper_door_rule)
+    check("paper doors preserve direct non-dangling graph references",
+          direct_references)
+    check("dropped missing-room candidates explicitly audited",
+          paper_dropped == 10, f"observed={paper_dropped}")
 
     evaluator_ok = True
     for method in METHODS:

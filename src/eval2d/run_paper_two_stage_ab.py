@@ -82,6 +82,7 @@ def _prediction(levels, scene: str, method: str):
         if method == "paper_spec_two_stage":
             level_diag.update(level._paper_spec_diagnostics)
 
+        retained_room_ids = set()
         for room in level.rooms:
             geometry = mask_to_json_geometry(
                 room["mask"], level._grid_origin, stage4.RES,
@@ -103,6 +104,12 @@ def _prediction(levels, scene: str, method: str):
                     else "watershed_v3_rerun_mask_polygonization_v0.2"),
                 "in_roomset": True,
             })
+            retained_room_ids.add(room["id"])
+        level_diag["canonical_room_count"] = len(retained_room_ids)
+        level_diag["dropped_room_ids"] = sorted(
+            {room["id"] for room in level.rooms} - retained_room_ids,
+            key=str)
+        canonical_doors = 0
 
         for opening_index, opening in enumerate(level.openings):
             row = {
@@ -110,20 +117,41 @@ def _prediction(levels, scene: str, method: str):
                 "rooms": list(opening["rooms"]),
                 "width_m": float(opening["width"]),
                 "segment": np.asarray(opening["seg"], float).tolist(),
+                "oriented_rectangle": (
+                    np.asarray(opening["oriented_rectangle"], float).tolist()
+                    if opening.get("oriented_rectangle") is not None else None),
                 "is_door": bool(opening.get("is_door")),
                 "bottleneck_stage": opening.get("bottleneck_stage"),
                 "provenance": opening.get(
                     "provenance",
                     "watershed_v3_shared_boundary_local_rule"),
             }
-            level_diag["bottlenecks"].append(row)
             if row["is_door"]:
+                missing_rooms = sorted(
+                    set(opening["rooms"]) - retained_room_ids, key=str)
+                if missing_rooms:
+                    row["canonical_export_status"] = (
+                        "dropped_missing_room_geometry")
+                    row["missing_canonical_room_ids"] = missing_rooms
+                    level_diag["bottlenecks"].append(row)
+                    continue
+                row["canonical_export_status"] = "exported_direct_door"
                 doors.append({
                     "idx": row["id"],
                     "level": level.idx,
                     "seg": np.asarray(opening["seg"], dtype=np.float64),
+                    "width_m": float(opening["width"]),
+                    "room_a": opening["rooms"][0],
+                    "room_b": opening["rooms"][1],
+                    "association_status": "direct_bottleneck_boundary",
+                    "confidence": None,
                     "provenance": row["provenance"],
                 })
+                canonical_doors += 1
+            else:
+                row["canonical_export_status"] = "diagnostic_opening_only"
+            level_diag["bottlenecks"].append(row)
+        level_diag["canonical_door_count"] = canonical_doors
         diagnostics["levels"].append(level_diag)
 
     return {
